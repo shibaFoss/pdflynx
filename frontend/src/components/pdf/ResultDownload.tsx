@@ -72,9 +72,9 @@ export const ResultDownload = ({ filename, onDownload, onReset }: ResultDownload
       </div>
 
       <div className="premium-card p-6 bg-secondary/30 border-dashed border-2 rounded-[28px] flex flex-col sm:flex-row items-center justify-between gap-6 group/file transition-all hover:bg-white dark:hover:bg-slate-900 hover:border-primary/50 duration-500 relative overflow-hidden">
-        <div className="flex items-center gap-4 truncate flex-1 min-w-0 pr-2">
-          <div className="bg-primary p-3 rounded-xl text-white shadow-xl ring-6 ring-primary/5 shadow-primary/30 group-hover/file:scale-110 transition-transform duration-300">
-            <Download size={20} strokeWidth={2.5} />
+        <div className="flex items-center gap-6 flex-1 min-w-0 pr-4">
+          <div className="flex-shrink-0 bg-primary p-3 rounded-xl text-white shadow-xl ring-8 ring-primary/5 shadow-primary/30 group-hover/file:scale-110 transition-transform duration-300 ml-1">
+            <Download size={22} strokeWidth={2.5} />
           </div>
           <div className="text-left flex-1 truncate">
             <p className="text-base font-black truncate group-hover/file:text-primary transition-colors">{filename}</p>
