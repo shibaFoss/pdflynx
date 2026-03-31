@@ -246,6 +246,28 @@ export class PdfController {
     }
   }
 
+  async processUnlock(request: FastifyRequest, reply: FastifyReply) {
+    const jobId = fileManager.generateJobId();
+    const { inputDir, outputDir } = await fileManager.setupJobDir(jobId);
+    this.setupCleanup(reply, jobId);
+
+    try {
+      const { fields, filePaths } = await this.parseMultipart(request, inputDir);
+
+      const password = fields['password'] || '';
+
+      if (filePaths.length === 0) {
+        throw new Error('PDF file required');
+      }
+
+      const result = await pdfService.unlock(jobId, filePaths[0], password, outputDir);
+      return this.sendProcessedFile(reply, result);
+    } catch (error: any) {
+      logger.error(`Unlock error [jobId=${jobId}]: ${error.message}`);
+      return this.sendError(reply, error.message);
+    }
+  }
+
   private sendProcessedFile(reply: FastifyReply, result: any) {
     const stream = createReadStream(result.outputPath);
 

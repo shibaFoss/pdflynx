@@ -489,6 +489,51 @@ export class PdfService {
       message: 'PDF protected successfully',
     };
   }
+
+  /**
+   * Removes password protection from a PDF using qpdf.
+   *
+   * @param jobId - Unique job identifier
+   * @param inputPath - Input PDF file path
+   * @param password - Password to unlock
+   * @param outputDir - Directory to store unlocked PDF
+   * @returns ProcessingResult
+   */
+  async unlock(
+    jobId: string,
+    inputPath: string,
+    password: string,
+    outputDir: string
+  ): Promise<ProcessingResult> {
+    const filename = `unlocked_${jobId}.pdf`;
+    const outputPath = path.join(outputDir, filename);
+
+    // qpdf --password=... --decrypt input output
+    const args: string[] = [];
+    if (password) {
+      args.push(`--password=${password}`);
+    }
+    args.push('--decrypt', '--', inputPath, outputPath);
+
+    const result = await commandExecutor.execute('qpdf', args, 60000);
+
+    if (!result.success) {
+      throw new Error(`Unlock failed: ${result.error}`);
+    }
+
+    const stats = await fs.stat(outputPath).catch(() => null);
+    if (!stats || stats.size === 0) {
+      throw new Error('Unlock resulted in an empty file');
+    }
+
+    return {
+      success: true,
+      jobId,
+      outputPath,
+      filename,
+      message: 'PDF unlocked successfully',
+    };
+  }
 }
 
 /**

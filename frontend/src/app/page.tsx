@@ -9,6 +9,7 @@ import {
   FileImage, 
   Globe,
   Shield,
+  LockOpen,
   Sparkles, 
   ShieldCheck, 
   Heart,
@@ -64,6 +65,13 @@ const TOOLS = [
     icon: Shield,
     href: '/protect-pdf',
     color: 'bg-amber-500',
+  },
+  {
+    title: 'Unlock PDF',
+    description: 'Remove passwords and security restrictions from your PDF files.',
+    icon: LockOpen,
+    href: '/unlock-pdf',
+    color: 'bg-orange-500',
   },
 ];
 

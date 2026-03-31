@@ -133,5 +133,10 @@ export enum PDFAction {
   /**
    * Add password protection to a PDF file.
    */
-  PROTECT_PDF = 'protect-pdf'
+  PROTECT_PDF = 'protect-pdf',
+
+  /**
+   * Remove password protection from a PDF file.
+   */
+  UNLOCK_PDF = 'unlock-pdf'
 }
