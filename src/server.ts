@@ -9,7 +9,7 @@ import { logger } from './utils/logger.js';
  * - HOST: Host address to bind (default: 0.0.0.0)
  */
 const PORT = Number(process.env.PORT) || 5000;
-const HOST = process.env.HOST || '0.0.0.0';
+const HOST = process.env.HOST || '127.0.0.1';
 
 /**
  * Starts the Fastify server.

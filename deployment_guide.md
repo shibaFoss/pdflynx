@@ -75,7 +75,7 @@ pm2 save
 ```
 
 ### **Step 4: Configure Nginx**
-Create a new Nginx configuration to route traffic to both the frontend (Next.js) and the backend API (Fastify).
+Create a new Nginx configuration to route traffic to both the frontend (Next.js) and the backend API (Fastify). By proxying from the same domain, we avoid CORS issues and keep the backend private (not directly accessible from the internet).
 
 Edit `/etc/nginx/sites-available/pdflynx`:
 ```nginx
@@ -94,8 +94,8 @@ server {
     }
 
     # Backend API (Fastify)
-    location /api/ {
-        proxy_pass http://localhost:5000/api/;
+    location /api/pdf/ {
+        proxy_pass http://localhost:5000/api/pdf/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -132,8 +132,8 @@ Ensure you set relevant environment variables in production.
 
 **Backend (.env or system env):**
 *   `PORT`: `5000`
-*   `HOST`: `0.0.0.0`
+*   `HOST`: `127.0.0.1` (Restrict access to localhost only)
 *   `NODE_ENV`: `production`
 
 **Frontend (.env.production):**
-*   `NEXT_PUBLIC_API_URL`: `https://yourdomain.com/api/pdf`
+*   `NEXT_PUBLIC_API_URL`: `/api/pdf` (Proxied via Nginx)
