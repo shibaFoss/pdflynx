@@ -4,12 +4,45 @@ import { commandExecutor } from '../executors/command.executor.js';
 import { logger } from '../utils/logger.js';
 import { ProcessingResult } from '../types/pdf.types.js';
 
+/**
+ * PdfService handles all PDF-related processing operations.
+ *
+ * Responsibilities:
+ * - Merge, split, compress PDFs
+ * - Convert PDFs to images and vice versa
+ * - Extract metadata (e.g., page count)
+ *
+ * Implementation Notes:
+ * - Relies on external CLI tools:
+ *   - qpdf (merge, page count)
+ *   - pdfseparate (split)
+ *   - zip (archiving)
+ *   - Ghostscript (compression)
+ *   - pdftoppm (PDF → image)
+ *   - ImageMagick (image processing)
+ *
+ * Important:
+ * - All operations are executed via commandExecutor (sandboxed execution layer)
+ * - Errors are thrown for upstream handling (controller/middleware level)
+ */
 export class PdfService {
-  async merge(jobId: string, inputPaths: string[], outputDir: string): Promise<ProcessingResult> {
+  /**
+   * Merges multiple PDF files into a single document.
+   *
+   * @param jobId - Unique job identifier
+   * @param inputPaths - Array of input PDF file paths
+   * @param outputDir - Directory to store merged file
+   * @returns ProcessingResult
+   */
+  async merge(
+    jobId: string,
+    inputPaths: string[],
+    outputDir: string
+  ): Promise<ProcessingResult> {
     const filename = `merged_${jobId}.pdf`;
     const outputPath = path.join(outputDir, filename);
 
-    // Using qpdf for merging
+    // qpdf merge command
     const args = ['--empty', '--pages', ...inputPaths, '--', outputPath];
     const result = await commandExecutor.execute('qpdf', args);
 
@@ -26,11 +59,28 @@ export class PdfService {
     };
   }
 
-  async split(jobId: string, inputPath: string, outputDir: string, pageRange: string = '1-z'): Promise<ProcessingResult> {
-    // 1. Separate the PDF into multiple files
+  /**
+   * Splits a PDF into individual pages and zips the result.
+   *
+   * @param jobId - Unique job identifier
+   * @param inputPath - Input PDF file path
+   * @param outputDir - Directory to store output
+   * @param pageRange - Page range (e.g., "1-5", "2-z")
+   * @returns ProcessingResult (ZIP file)
+   *
+   * Workflow:
+   * 1. Extract pages using pdfseparate
+   * 2. Sort generated files
+   * 3. Archive them into a ZIP
+   */
+  async split(
+    jobId: string,
+    inputPath: string,
+    outputDir: string,
+    pageRange: string = '1-z'
+  ): Promise<ProcessingResult> {
     const outputPattern = path.join(outputDir, 'page-%d.pdf');
-    
-    // Determine the page range if possible
+
     let firstPage = 1;
     let lastPage: number | undefined;
 
@@ -43,20 +93,21 @@ export class PdfService {
     }
 
     const separateArgs = ['-f', firstPage.toString()];
-    if (lastPage) {
-      separateArgs.push('-l', lastPage.toString());
-    }
+    if (lastPage) separateArgs.push('-l', lastPage.toString());
     separateArgs.push(inputPath, outputPattern);
 
-    const separateResult = await commandExecutor.execute('pdfseparate', separateArgs);
+    const separateResult = await commandExecutor.execute(
+      'pdfseparate',
+      separateArgs
+    );
 
     if (!separateResult.success) {
       throw new Error(`Splitting failed: ${separateResult.error}`);
     }
 
-    // 2. Zip the generated files
     const zipFilename = `split_${jobId}.zip`;
     const zipPath = path.join(outputDir, zipFilename);
+
     const filesInDir = await fs.readdir(outputDir);
     const pdfFiles = filesInDir
       .filter(f => f.startsWith('page-') && f.endsWith('.pdf'))
@@ -86,7 +137,23 @@ export class PdfService {
     };
   }
 
-  async compress(jobId: string, inputPath: string, outputDir: string): Promise<ProcessingResult> {
+  /**
+   * Compresses a PDF using Ghostscript.
+   *
+   * @param jobId - Unique job identifier
+   * @param inputPath - Input PDF file path
+   * @param outputDir - Directory to store compressed file
+   * @returns ProcessingResult
+   *
+   * Notes:
+   * - Uses low-resolution settings (/screen) for aggressive compression
+   * - Logs compression ratio for monitoring
+   */
+  async compress(
+    jobId: string,
+    inputPath: string,
+    outputDir: string
+  ): Promise<ProcessingResult> {
     const filename = `compressed_${jobId}.pdf`;
     const outputPath = path.join(outputDir, filename);
 
@@ -115,7 +182,13 @@ export class PdfService {
     }
 
     const statsAfter = await fs.stat(outputPath);
-    logger.info(`Compression [jobId=${jobId}]: ${statsBefore.size} -> ${statsAfter.size} bytes (${((statsBefore.size - statsAfter.size) / statsBefore.size * 100).toFixed(2)}% reduction)`);
+
+    logger.info(
+      `Compression [jobId=${jobId}]: ${statsBefore.size} -> ${statsAfter.size} bytes (${(
+        ((statsBefore.size - statsAfter.size) / statsBefore.size) *
+        100
+      ).toFixed(2)}% reduction)`
+    );
 
     return {
       success: true,
@@ -126,10 +199,28 @@ export class PdfService {
     };
   }
 
-  async pdfToImage(jobId: string, inputPath: string, outputDir: string, pageRange: string = '1-z'): Promise<ProcessingResult> {
-    const outputPrefix = path.join(outputDir, `page`); 
-    
-    // Parse range for pdftoppm (-f and -l)
+  /**
+   * Converts a PDF into images and joins them into a single image.
+   *
+   * @param jobId - Unique job identifier
+   * @param inputPath - Input PDF file path
+   * @param outputDir - Directory to store images
+   * @param pageRange - Page range (e.g., "1-3", "1-z")
+   * @returns ProcessingResult (single joined image)
+   *
+   * Workflow:
+   * 1. Convert PDF pages → PNG (pdftoppm)
+   * 2. Sort generated images
+   * 3. Join images vertically (ImageMagick)
+   */
+  async pdfToImage(
+    jobId: string,
+    inputPath: string,
+    outputDir: string,
+    pageRange: string = '1-z'
+  ): Promise<ProcessingResult> {
+    const outputPrefix = path.join(outputDir, `page`);
+
     let firstPage = 1;
     let lastPage: number | undefined;
 
@@ -144,14 +235,13 @@ export class PdfService {
     const args = ['-png', '-r', '72', '-f', firstPage.toString()];
     if (lastPage) args.push('-l', lastPage.toString());
     args.push(inputPath, outputPrefix);
-    
+
     const result = await commandExecutor.execute('pdftoppm', args);
 
     if (!result.success) {
       throw new Error(`PDF to Image conversion failed: ${result.error}`);
     }
 
-    // 2. Identify all generated images and sort them
     const filesInDir = await fs.readdir(outputDir);
     const images = filesInDir
       .filter(f => f.startsWith('page-') && f.endsWith('.png'))
@@ -165,12 +255,19 @@ export class PdfService {
       throw new Error('No images were generated');
     }
 
-    // 3. Join images vertically using ImageMagick
     const joinedFilename = `joined_${jobId}.png`;
     const joinedPath = path.join(outputDir, joinedFilename);
-    const convertArgs = [...images.map(img => path.join(outputDir, img)), '-append', joinedPath];
-    
-    const convertResult = await commandExecutor.execute('convert', convertArgs);
+
+    const convertArgs = [
+      ...images.map(img => path.join(outputDir, img)),
+      '-append',
+      joinedPath,
+    ];
+
+    const convertResult = await commandExecutor.execute(
+      'convert',
+      convertArgs
+    );
 
     if (!convertResult.success) {
       throw new Error(`Joining images failed: ${convertResult.error}`);
@@ -185,17 +282,41 @@ export class PdfService {
     };
   }
 
+  /**
+   * Retrieves the total number of pages in a PDF.
+   *
+   * @param inputPath - Input PDF file path
+   * @returns number - Page count
+   */
   async getPageCount(inputPath: string): Promise<number> {
-    const result = await commandExecutor.execute('qpdf', ['--show-npages', inputPath]);
-    if (!result.success) throw new Error(`Could not get page count: ${result.error}`);
+    const result = await commandExecutor.execute('qpdf', [
+      '--show-npages',
+      inputPath,
+    ]);
+
+    if (!result.success) {
+      throw new Error(`Could not get page count: ${result.error}`);
+    }
+
     return parseInt(result.output.trim());
   }
 
-  async imageToPdf(jobId: string, imagePaths: string[], outputDir: string): Promise<ProcessingResult> {
+  /**
+   * Converts multiple images into a single PDF.
+   *
+   * @param jobId - Unique job identifier
+   * @param imagePaths - Array of image file paths
+   * @param outputDir - Directory to store PDF
+   * @returns ProcessingResult
+   */
+  async imageToPdf(
+    jobId: string,
+    imagePaths: string[],
+    outputDir: string
+  ): Promise<ProcessingResult> {
     const filename = `converted_${jobId}.pdf`;
     const outputPath = path.join(outputDir, filename);
 
-    // Using ImageMagick to convert images to PDF
     const args = [...imagePaths, outputPath];
     const result = await commandExecutor.execute('convert', args);
 
@@ -213,4 +334,7 @@ export class PdfService {
   }
 }
 
+/**
+ * Singleton instance of PdfService for application-wide usage.
+ */
 export const pdfService = new PdfService();
