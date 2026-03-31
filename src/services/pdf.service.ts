@@ -93,6 +93,7 @@ export class PdfService {
     const filename = `compressed_${jobId}.pdf`;
     const outputPath = path.join(outputDir, filename);
 
+    // More aggressive Ghostscript settings for compression
     const args = [
       '-sDEVICE=pdfwrite',
       '-dCompatibilityLevel=1.4',
@@ -100,14 +101,25 @@ export class PdfService {
       '-dNOPAUSE',
       '-dQUIET',
       '-dBATCH',
+      '-dColorImageDownsampleType=/Bicubic',
+      '-dColorImageResolution=72',
+      '-dGrayImageDownsampleType=/Bicubic',
+      '-dGrayImageResolution=72',
+      '-dMonoImageDownsampleType=/Bicubic',
+      '-dMonoImageResolution=72',
       `-sOutputFile=${outputPath}`,
       inputPath,
     ];
+
+    const statsBefore = await fs.stat(inputPath);
     const result = await commandExecutor.execute('gs', args);
 
     if (!result.success) {
       throw new Error(`Compression failed: ${result.error}`);
     }
+
+    const statsAfter = await fs.stat(outputPath);
+    logger.info(`Compression [jobId=${jobId}]: ${statsBefore.size} -> ${statsAfter.size} bytes (${((statsBefore.size - statsAfter.size) / statsBefore.size * 100).toFixed(2)}% reduction)`);
 
     return {
       success: true,
