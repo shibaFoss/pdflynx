@@ -268,6 +268,29 @@ export class PdfController {
     }
   }
 
+  async processRotate(request: FastifyRequest, reply: FastifyReply) {
+    const jobId = fileManager.generateJobId();
+    const { inputDir, outputDir } = await fileManager.setupJobDir(jobId);
+    this.setupCleanup(reply, jobId);
+
+    try {
+      const { fields, filePaths } = await this.parseMultipart(request, inputDir);
+
+      const angle = fields['angle'] || '90';
+      const pageRange = fields['pageRange'] || '1-z';
+
+      if (filePaths.length === 0) {
+        throw new Error('PDF file required');
+      }
+
+      const result = await pdfService.rotate(jobId, filePaths[0], angle, outputDir, pageRange);
+      return this.sendProcessedFile(reply, result);
+    } catch (error: any) {
+      logger.error(`Rotate error [jobId=${jobId}]: ${error.message}`);
+      return this.sendError(reply, error.message);
+    }
+  }
+
   private sendProcessedFile(reply: FastifyReply, result: any) {
     const stream = createReadStream(result.outputPath);
 

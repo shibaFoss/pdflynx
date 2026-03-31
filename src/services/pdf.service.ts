@@ -534,6 +534,97 @@ export class PdfService {
       message: 'PDF unlocked successfully',
     };
   }
+
+  /**
+   * Transforms PDF pages (Rotate or Flip) using qpdf or ImageMagick.
+   *
+   * @param jobId - Unique job identifier
+   * @param inputPath - Input PDF file path
+   * @param transformation - Transformation to apply (90, 180, 270, flipH, flipV)
+   * @param outputDir - Directory to store transformed PDF
+   * @param pageRange - Page range for flipping (e.g., '1-2', '5-5', '1-z')
+   * @returns ProcessingResult
+   */
+  async rotate(
+    jobId: string,
+    inputPath: string,
+    transformation: string,
+    outputDir: string,
+    pageRange: string = '1-z'
+  ): Promise<ProcessingResult> {
+    const filename = `transformed_${jobId}.pdf`;
+    const outputPath = path.join(outputDir, filename);
+
+    if (['90', '180', '270'].includes(transformation)) {
+      // Rotation using qpdf (Current logic as requested)
+      const args = [inputPath, `--rotate=${transformation}:1-z`, outputPath];
+      const result = await commandExecutor.execute('qpdf', args, 60000);
+      if (!result.success) throw new Error(`Rotation failed: ${result.error}`);
+    } else if (transformation === 'flipH' || transformation === 'flipV') {
+      // Flip using Image-based approach as requested
+      const pagePrefix = path.join(outputDir, 'page');
+      
+      // 1. Convert specific pages to images
+      let firstPage = 1;
+      let lastPage: number | undefined;
+
+      if (pageRange && pageRange.includes('-')) {
+        const parts = pageRange.split('-');
+        firstPage = parseInt(parts[0]) || 1;
+        if (parts[1] !== 'z') {
+          lastPage = parseInt(parts[1]);
+        }
+      } else if (pageRange && !isNaN(parseInt(pageRange))) {
+        firstPage = parseInt(pageRange);
+        lastPage = firstPage;
+      }
+
+      const ppmArgs = ['-png', '-r', '300', '-f', firstPage.toString()];
+      if (lastPage) ppmArgs.push('-l', lastPage.toString());
+      ppmArgs.push(inputPath, pagePrefix);
+
+      const ppmResult = await commandExecutor.execute('pdftoppm', ppmArgs, 180000);
+      if (!ppmResult.success) throw new Error(`PDF to Image failed: ${ppmResult.error}`);
+
+      // 2. Identify generated image files
+      const files = await fs.readdir(outputDir);
+      const images = files
+        .filter(f => f.startsWith('page-') && f.endsWith('.png'))
+        .sort((a, b) => {
+          const numA = parseInt(a.match(/page-(\d+)\.png/)?.[1] || '0');
+          const numB = parseInt(b.match(/page-(\d+)\.png/)?.[1] || '0');
+          return numA - numB;
+        });
+
+      if (images.length === 0) throw new Error('No pages were extracted for flipping');
+
+      // 3. Flip the images
+      const mogrifyArg = transformation === 'flipH' ? '-flop' : '-flip';
+      const mogrifyArgs = [mogrifyArg, ...images.map(img => path.join(outputDir, img))];
+      const mogrifyResult = await commandExecutor.execute('mogrify', mogrifyArgs, 180000);
+      if (!mogrifyResult.success) throw new Error(`Image flipping failed: ${mogrifyResult.error}`);
+
+      // 4. Convert images back to PDF
+      const convertArgs = [...images.map(img => path.join(outputDir, img)), outputPath];
+      const convertResult = await commandExecutor.execute('convert', convertArgs, 180000);
+      if (!convertResult.success) throw new Error(`Re-encoding to PDF failed: ${convertResult.error}`);
+    } else {
+      throw new Error(`Unsupported transformation: ${transformation}`);
+    }
+
+    const stats = await fs.stat(outputPath).catch(() => null);
+    if (!stats || stats.size === 0) {
+      throw new Error('Transformation resulted in an empty file');
+    }
+
+    return {
+      success: true,
+      jobId,
+      outputPath,
+      filename,
+      message: 'PDF page transformation applied successfully',
+    };
+  }
 }
 
 /**

@@ -69,6 +69,15 @@ export const api = {
       responseType: 'blob',
     });
   },
+  rotate: (file: File, angle: string, pageRange: string = '1-z') => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('angle', angle);
+    formData.append('pageRange', pageRange);
+    return axios.post(`${API_BASE_URL}/rotate`, formData, {
+      responseType: 'blob',
+    });
+  },
 };
 
 export const downloadBlob = (blob: Blob, filename: string) => {

@@ -85,6 +85,13 @@ export default async function pdfRoutes(
   );
 
   /**
+   * Rotate pages in a PDF.
+   */
+  fastify.post('/rotate', (req, rep) =>
+    pdfController.processRotate(req, rep)
+  );
+
+  /**
    * Retrieve the number of pages in a PDF.
    */
   fastify.post('/pages', (req, rep) =>

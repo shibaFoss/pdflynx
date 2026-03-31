@@ -10,6 +10,7 @@ import {
   Globe,
   Shield,
   LockOpen,
+  RefreshCw,
   Sparkles, 
   ShieldCheck, 
   Heart,
@@ -72,6 +73,13 @@ const TOOLS = [
     icon: LockOpen,
     href: '/unlock-pdf',
     color: 'bg-orange-500',
+  },
+  {
+    title: 'Rotate PDF',
+    description: 'Rotate your PDF pages clockwise or counter-clockwise as you need.',
+    icon: RefreshCw,
+    href: '/rotate-pdf',
+    color: 'bg-violet-500',
   },
 ];
 

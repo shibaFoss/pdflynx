@@ -138,5 +138,10 @@ export enum PDFAction {
   /**
    * Remove password protection from a PDF file.
    */
-  UNLOCK_PDF = 'unlock-pdf'
+  UNLOCK_PDF = 'unlock-pdf',
+
+  /**
+   * Rotate a PDF file pages.
+   */
+  ROTATE_PDF = 'rotate-pdf'
 }
