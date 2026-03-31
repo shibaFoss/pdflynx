@@ -16,7 +16,7 @@ export const Footer = () => {
               <h3 className="text-3xl font-black tracking-tight text-foreground">pdf<span className="text-primary italic">lynx</span></h3>
             </Link>
             <p className="text-base text-muted-foreground w-full max-w-sm leading-relaxed font-medium">
-              We&apos;re building the future of document processing. Simple, fast, and secure tools designed for everyone.
+              Redefining the standard for digital documents. A suite of professional tools crafted for extreme speed, uncompromising privacy, and absolute simplicity.
             </p>
             <div className="flex items-center gap-6 text-muted-foreground">
               <a href="mailto:contact@pdflynx.com">
@@ -68,20 +68,13 @@ export const Footer = () => {
           </div>
         </div>
 
-        <div className="border-t border-border/50 mt-20 pt-12 flex flex-col md:flex-row items-center justify-between gap-10">
-          <div className="flex items-center gap-6 text-[13px] font-bold text-muted-foreground/60">
-             <p>© 2026 pdflynx.</p>
-             <div className="w-1 h-1 rounded-full bg-border" />
+        <div className="border-t border-border/20 mt-16 pt-10 flex flex-col items-center gap-8">
+          <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6 text-[13px] font-bold text-muted-foreground/60 text-center md:text-left">
+             <p>© 2026 pdflynx suite.</p>
+             <div className="hidden md:block w-1 h-1 rounded-full bg-border" />
              <p className="flex items-center gap-1.5 hover:text-primary transition-colors cursor-pointer group">
                 Made with <Heart className="text-rose-500 fill-rose-500 group-hover:scale-125 transition-transform" size={14} /> and loved by users across the world.
              </p>
-          </div>
-          <div className="flex gap-10 text-[13px] font-bold text-muted-foreground">
-             <Link href="/" className="hover:text-primary transition-colors">Server Status</Link>
-             <Link href="/" className="hover:text-primary transition-colors">Documentation</Link>
-             <Link href="/" className="hover:text-primary transition-colors flex items-center gap-2">
-                <Code size={16} /> Source Code
-             </Link>
           </div>
         </div>
       </div>
