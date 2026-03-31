@@ -7,6 +7,7 @@ import {
   Zap, 
   Image as ImageIcon, 
   FileImage, 
+  Globe,
   Sparkles, 
   ShieldCheck, 
   Heart,
@@ -48,6 +49,13 @@ const TOOLS = [
     icon: ImageIcon,
     href: '/image-to-pdf',
     color: 'bg-accent',
+  },
+  {
+    title: 'HTML to PDF',
+    description: 'Convert any web page or HTML file into a high-quality PDF.',
+    icon: Globe,
+    href: '/html-to-pdf',
+    color: 'bg-emerald-500',
   },
 ];
 

@@ -64,6 +64,13 @@ export default async function pdfRoutes(
   );
 
   /**
+   * Convert an HTML URL or file into a PDF document.
+   */
+  fastify.post('/html-to-pdf', (req, rep) =>
+    pdfController.processHtmlToPdf(req, rep)
+  );
+
+  /**
    * Retrieve the number of pages in a PDF.
    */
   fastify.post('/pages', (req, rep) =>

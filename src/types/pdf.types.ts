@@ -123,5 +123,10 @@ export enum PDFAction {
   /**
    * Convert images into a single PDF document.
    */
-  IMAGE_TO_PDF = 'image-to-pdf'
+  IMAGE_TO_PDF = 'image-to-pdf',
+
+  /**
+   * Convert an HTML URL or file into a PDF document.
+   */
+  HTML_TO_PDF = 'html-to-pdf'
 }

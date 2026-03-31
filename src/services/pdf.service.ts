@@ -360,6 +360,86 @@ export class PdfService {
       message: 'Images converted to PDF successfully',
     };
   }
+
+  /**
+   * Converts a URL or local HTML file to PDF using LibreOffice.
+   *
+   * @param jobId - Unique job identifier
+   * @param options - Object containing url or htmlFile path
+   * @param outputDir - Directory to store PDF
+   * @returns ProcessingResult
+   */
+  async htmlToPdf(
+    jobId: string,
+    options: { url?: string; htmlFile?: string },
+    outputDir: string
+  ): Promise<ProcessingResult> {
+    const { url, htmlFile } = options;
+    let inputPath = htmlFile;
+
+    if (url) {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const html = await response.text();
+        inputPath = path.join(outputDir, `content_${jobId}.html`);
+        await fs.writeFile(inputPath, html);
+      } catch (error: any) {
+        throw new Error(`Failed to fetch URL: ${error.message}`);
+      }
+    }
+
+    if (!inputPath) {
+      throw new Error('No HTML source provided');
+    }
+
+    const filename = `converted_${jobId}.pdf`;
+    const outputPath = path.join(outputDir, filename);
+
+    // libreoffice --headless --convert-to pdf input.html --outdir output/
+    const args = [
+      '--headless',
+      '--convert-to',
+      'pdf',
+      inputPath,
+      '--outdir',
+      outputDir,
+    ];
+
+    const result = await commandExecutor.execute('libreoffice', args, 180000);
+
+    if (!result.success) {
+      throw new Error(`HTML to PDF conversion failed: ${result.error}`);
+    }
+
+    // LibreOffice creates a file with the same name as the input (but .pdf extension)
+    const baseName = path.basename(inputPath, path.extname(inputPath));
+    const generatedPath = path.join(outputDir, `${baseName}.pdf`);
+
+    // Rename to our standardized filename
+    if (generatedPath !== outputPath) {
+      try {
+        await fs.rename(generatedPath, outputPath);
+      } catch (err) {
+        // Fallback: check if the file exists anyway
+        const exists = await fs.access(generatedPath).then(() => true).catch(() => false);
+        if (exists) await fs.rename(generatedPath, outputPath);
+      }
+    }
+
+    const stats = await fs.stat(outputPath).catch(() => null);
+    if (!stats || stats.size === 0) {
+      throw new Error('HTML to PDF resulted in an empty file');
+    }
+
+    return {
+      success: true,
+      jobId,
+      outputPath,
+      filename,
+      message: 'HTML converted to PDF successfully',
+    };
+  }
 }
 
 /**

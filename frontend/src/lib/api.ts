@@ -45,6 +45,14 @@ export const api = {
       responseType: 'blob',
     });
   },
+  htmlToPdf: (options: { url?: string; file?: File }) => {
+    const formData = new FormData();
+    if (options.url) formData.append('url', options.url);
+    if (options.file) formData.append('file', options.file);
+    return axios.post(`${API_BASE_URL}/html-to-pdf`, formData, {
+      responseType: 'blob',
+    });
+  },
 };
 
 export const downloadBlob = (blob: Blob, filename: string) => {
