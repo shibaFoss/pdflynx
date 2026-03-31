@@ -16,10 +16,12 @@ export const Footer = () => {
               <h3 className="text-3xl font-black tracking-tight text-foreground">pdf<span className="text-primary italic">lynx</span></h3>
             </Link>
             <p className="text-base text-muted-foreground w-full max-w-sm leading-relaxed font-medium">
-              We&apos;re building the future of open-source document processing. Simple, fast, and secure tools designed for everyone.
+              We&apos;re building the future of document processing. Simple, fast, and secure tools designed for everyone.
             </p>
             <div className="flex items-center gap-6 text-muted-foreground">
-              <Mail size={22} className="hover:text-primary transition-all cursor-pointer hover:scale-110" />
+              <a href="mailto:contact@pdflynx.com">
+                <Mail size={22} className="hover:text-primary transition-all cursor-pointer hover:scale-110" />
+              </a>
               <Globe size={22} className="hover:text-primary transition-all cursor-pointer hover:scale-110" />
             </div>
           </div>
@@ -71,7 +73,7 @@ export const Footer = () => {
              <p>© 2026 pdflynx.</p>
              <div className="w-1 h-1 rounded-full bg-border" />
              <p className="flex items-center gap-1.5 hover:text-primary transition-colors cursor-pointer group">
-                Made with <Heart className="text-rose-500 fill-rose-500 group-hover:scale-125 transition-transform" size={14} /> for everyone.
+                Made with <Heart className="text-rose-500 fill-rose-500 group-hover:scale-125 transition-transform" size={14} /> and loved by users across the world.
              </p>
           </div>
           <div className="flex gap-10 text-[13px] font-bold text-muted-foreground">

@@ -7,25 +7,27 @@
   --card-foreground: #020617;
   --popover: #ffffff;
   --popover-foreground: #020617;
-  --primary: #d946ef; /* Neon Fuchsia */
+  --primary: #2563eb; /* Professional Blue */
   --primary-foreground: #ffffff;
   --secondary: #f1f5f9;
   --secondary-foreground: #0f172a;
   --muted: #f8fafc;
   --muted-foreground: #64748b;
-  --accent: #06b6d4; /* Neon Cyan */
+  --accent: #0ea5e9; /* Sky Blue */
   --accent-foreground: #ffffff;
   --destructive: #f43f5e;
   --destructive-foreground: #ffffff;
   --border: #e2e8f0;
   --input: #e2e8f0;
-  --ring: #d946ef;
-  --radius: 1.5rem; /* Larger, softer radius */
+  --ring: #2563eb;
+  --radius: 1.5rem;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -44,32 +46,32 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #02010a; /* Ultra deep midnight */
+    --background: #020617;
     --foreground: #f8fafc;
-    --card: #050510;
+    --card: #030712;
     --card-foreground: #f8fafc;
-    --popover: #050510;
+    --popover: #030712;
     --popover-foreground: #f8fafc;
-    --primary: #d946ef; /* Fuchsia */
+    --primary: #3b82f6; /* Blue 500 */
     --primary-foreground: #ffffff;
-    --secondary: #13122c;
+    --secondary: #0f172a;
     --secondary-foreground: #f8fafc;
-    --muted: #13122c;
+    --muted: #1e293b;
     --muted-foreground: #94a3b8;
     --accent: #06b6d4; /* Cyan */
     --accent-foreground: #ffffff;
     --destructive: #ef4444;
     --destructive-foreground: #ffffff;
-    --border: #1e1b4b;
-    --input: #1e1b4b;
-    --ring: #d946ef;
+    --border: #1e293b;
+    --input: #1e293b;
+    --ring: #3b82f6;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  font-family: var(--font-ubuntu), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
 main {

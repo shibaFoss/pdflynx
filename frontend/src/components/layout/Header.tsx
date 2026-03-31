@@ -10,7 +10,7 @@ export const Header = () => {
     <motion.header 
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      className="sticky top-0 z-50 w-full border-b border-white/5 bg-background/60 backdrop-blur-2xl transition-all duration-300"
+      className="sticky top-0 z-50 w-full border-b border-border/50 bg-background shadow-md shadow-black/5 transition-all duration-300"
     >
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 group">
@@ -24,6 +24,7 @@ export const Header = () => {
 
         <nav className="hidden lg:flex items-center gap-1 bg-secondary/50 p-1 rounded-2xl border border-border/50">
           {[
+            { name: 'All Tools', href: '/' },
             { name: 'Merge', href: '/merge-pdf' },
             { name: 'Split', href: '/split-pdf' },
             { name: 'Compress', href: '/compress-pdf' },
@@ -41,12 +42,7 @@ export const Header = () => {
         </nav>
 
         <div className="flex items-center gap-4">
-          <Button variant="outline" className="hidden sm:inline-flex rounded-2xl px-6 border-2 font-bold hover:bg-secondary">
-            Sign In
-          </Button>
-          <Button className="hidden sm:inline-flex rounded-2xl px-8 shadow-xl shadow-primary/20 font-bold active:scale-95 transition-transform">
-            Try Premium
-          </Button>
+          {/* Action buttons removed as per request */}
         </div>
       </div>
     </motion.header>

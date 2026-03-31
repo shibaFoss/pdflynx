@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Ubuntu, Ubuntu_Mono } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
@@ -16,8 +17,8 @@ const ubuntuMono = Ubuntu_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "pdflynx | The Ultimate Open Source PDF Tools",
-  description: "Merge, Split, Compress and Convert your PDF files for free. Fast, secure, and open-source.",
+  title: "pdflynx | The Ultimate PDF Tools",
+  description: "Merge, Split, Compress and Convert your PDF files with ease. Fast, secure, and loved by millions.",
   keywords: "pdf lynx, merge pdf, split pdf, compress pdf, pdf to image, image to pdf, free pdf tools",
   authors: [{ name: "pdflynx team" }],
   openGraph: {
@@ -44,7 +45,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col bg-background text-foreground selection:bg-primary/20 selection:text-primary scroll-smooth overflow-x-hidden`}
+        className={`${ubuntu.variable} ${ubuntuMono.variable} antialiased min-h-screen flex flex-col bg-background text-foreground selection:bg-primary/20 selection:text-primary scroll-smooth overflow-x-hidden`}
       >
         {/* Immersive Cyber Velvet Background Elements */}
         <div className="fixed inset-0 -z-10 pointer-events-none">

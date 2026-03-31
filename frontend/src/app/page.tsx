@@ -66,16 +66,16 @@ export default function Home() {
           className="text-center space-y-8 max-w-4xl mx-auto mb-16"
         >
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-xs font-black border border-primary/20 backdrop-blur-xl animate-float">
-            <Sparkles size={14} />
-            <span className="uppercase tracking-widest text-[10px]">Premium Open-Source Experience</span>
+            <Heart size={14} className="fill-primary" />
+            <span className="uppercase tracking-widest text-[10px]">Loved by users across the world</span>
           </div>
           
           <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.85] text-foreground">
-            PDF tools that <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent animate-gradient">elevate</span> your workflow.
+            PDF tools that <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent animate-gradient">simply</span> work.
           </h1>
           
           <p className="text-xl md:text-2xl text-muted-foreground font-medium max-w-2xl mx-auto leading-relaxed">
-            Beautifully crafted, blindingly fast, and completely free. Process documents without limits or compromises.
+            Fast, secure, and beautifully designed. Process your documents without annoying limits or complexity.
           </p>
         </motion.div>
 
@@ -122,10 +122,10 @@ export default function Home() {
           </div>
           <div className="flex flex-col items-center text-center space-y-4">
              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary ring-4 ring-primary/5">
-                <Heart size={28} />
+                <Heart size={28} className="fill-primary" />
              </div>
-             <h3 className="text-xl font-bold">Always Free</h3>
-             <p className="text-muted-foreground text-sm font-medium">No subscriptions, no hidden fees, no limits. Just open source tools for everyone.</p>
+             <h3 className="text-xl font-bold">Simply Reliable</h3>
+             <p className="text-muted-foreground text-sm font-medium">Built with care and loved by users across the world. No subscriptions or hidden fees.</p>
           </div>
         </motion.div>
 
@@ -145,17 +145,14 @@ export default function Home() {
                  Ready to <span className="text-primary italic">transform</span> your workflow?
               </h2>
               <p className="text-lg md:text-xl text-muted-foreground font-medium max-w-xl mx-auto">
-                 Experience the true power of open-source document tools. No signups, no limits, just pure performance.
+                 Experience the true power of professional document tools. No signups, no limits, just pure performance.
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+              <div className="flex items-center justify-center">
                  <button 
                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                    className="px-10 h-16 rounded-full bg-primary text-white font-black text-lg shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all w-full sm:w-auto"
                  >
                     Get Started Free
-                 </button>
-                 <button className="px-10 h-16 rounded-full glass font-black text-lg hover:bg-white/10 transition-all border-white/10 text-foreground w-full sm:w-auto">
-                    View on GitHub
                  </button>
               </div>
            </div>
