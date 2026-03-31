@@ -29,356 +29,175 @@ import { logger } from '../utils/logger.js';
  * - All methods follow a similar pattern for consistency
  */
 export class PdfController {
+  private readonly MAX_FILES = 10;
 
   /**
-   * Handles PDF merge requests.
-   *
-   * պահանջ:
-   * - At least 2 PDF files required
-   *
-   * Flow:
-   * - Validate files
-   * - Save to input directory
-   * - Call pdfService.merge
-   * - Return merged PDF
+   * Reusable multipart parser and validator with early rejection.
    */
+  private async parseMultipart(
+    request: FastifyRequest,
+    inputDir: string
+  ): Promise<{ filePaths: string[]; fields: Record<string, string> }> {
+    const filePaths: string[] = [];
+    const fields: Record<string, string> = {};
+
+    const parts = request.parts();
+
+    for await (const part of parts) {
+      if (part.type === 'file') {
+        if (filePaths.length >= this.MAX_FILES) {
+          throw new Error(`Maximum of ${this.MAX_FILES} files allowed.`);
+        }
+
+        const sanitizedFilename = validator.sanitizeFilename(part.filename);
+        if (!validator.validateFileType(sanitizedFilename, part.mimetype)) {
+          throw new Error(`Unsupported file type: ${part.filename}`);
+        }
+
+        // Fastify automatically throws FST_REQ_FILE_TOO_LARGE based on app.ts limits.
+        const filePath = await fileManager.saveFile(part.file, inputDir, sanitizedFilename);
+        filePaths.push(filePath);
+
+      } else if (part.type === 'field') {
+        fields[part.fieldname] = part.value as string;
+      }
+    }
+
+    return { filePaths, fields };
+  }
+
+  /**
+   * Attaches robust cleanup handlers to ensure temporary resources are freed
+   * when requests complete successfully or abort prematurely.
+   */
+  private setupCleanup(reply: FastifyReply, jobId: string) {
+    const cleanup = () => fileManager.cleanupJobDir(jobId);
+    reply.raw.on('finish', cleanup);
+    reply.raw.on('close', cleanup);
+  }
+
   async processMerge(request: FastifyRequest, reply: FastifyReply) {
     const jobId = fileManager.generateJobId();
     const { inputDir, outputDir } = await fileManager.setupJobDir(jobId);
-    const inputPaths: string[] = [];
+    this.setupCleanup(reply, jobId);
 
     try {
-      const parts = request.parts();
+      const { filePaths } = await this.parseMultipart(request, inputDir);
 
-      for await (const part of parts) {
-        if (part.type === 'file') {
-          const sanitizedFilename = validator.sanitizeFilename(part.filename);
-
-          if (!validator.validateFileType(sanitizedFilename, part.mimetype)) continue;
-
-          const filePath = await fileManager.saveFile(
-            part.file,
-            inputDir,
-            sanitizedFilename
-          );
-
-          inputPaths.push(filePath);
-        }
+      if (filePaths.length < 2) {
+        return reply.code(400).send({ success: false, message: 'At least two PDF files required' });
       }
 
-      if (inputPaths.length < 2) {
-        return reply
-          .code(400)
-          .send({ success: false, message: 'At least two PDF files required' });
-      }
-
-      const result = await pdfService.merge(jobId, inputPaths, outputDir);
+      const result = await pdfService.merge(jobId, filePaths, outputDir);
       return this.sendProcessedFile(reply, result);
-
     } catch (error: any) {
       logger.error(`Merge error [jobId=${jobId}]: ${error.message}`);
       return this.sendError(reply, error.message);
-
-    } finally {
-      /**
-       * Cleanup after response is fully sent.
-       */
-      reply.raw.on('finish', () =>
-        fileManager.cleanupJobDir(jobId)
-      );
     }
   }
 
-  /**
-   * Handles PDF split requests.
-   *
-   * Input:
-   * - Single PDF file
-   * - Optional page range (e.g., "1-5", "2-z")
-   *
-   * Output:
-   * - ZIP file containing split pages
-   */
   async processSplit(request: FastifyRequest, reply: FastifyReply) {
     const jobId = fileManager.generateJobId();
     const { inputDir, outputDir } = await fileManager.setupJobDir(jobId);
-
-    let inputPath = '';
-    let pageRange = '1-z';
+    this.setupCleanup(reply, jobId);
 
     try {
-      const parts = request.parts();
+      const { filePaths, fields } = await this.parseMultipart(request, inputDir);
 
-      for await (const part of parts) {
-        if (part.type === 'file') {
-          const sanitizedFilename = validator.sanitizeFilename(part.filename);
-
-          if (!validator.validateFileType(sanitizedFilename, part.mimetype)) continue;
-
-          inputPath = await fileManager.saveFile(
-            part.file,
-            inputDir,
-            sanitizedFilename
-          );
-
-        } else if (part.type === 'field' && part.fieldname === 'range') {
-          pageRange = (part.value as string) || '1-z';
-        }
+      if (filePaths.length === 0) {
+        return reply.code(400).send({ success: false, message: 'PDF file required' });
       }
 
-      if (!inputPath) {
-        return reply
-          .code(400)
-          .send({ success: false, message: 'PDF file required' });
-      }
-
-      const result = await pdfService.split(
-        jobId,
-        inputPath,
-        outputDir,
-        pageRange
-      );
-
+      const pageRange = fields['range'] || '1-z';
+      const result = await pdfService.split(jobId, filePaths[0], outputDir, pageRange);
       return this.sendProcessedFile(reply, result);
-
     } catch (error: any) {
       logger.error(`Split error [jobId=${jobId}]: ${error.message}`);
       return this.sendError(reply, error.message);
-
-    } finally {
-      reply.raw.on('finish', () =>
-        fileManager.cleanupJobDir(jobId)
-      );
     }
   }
 
-  /**
-   * Handles PDF compression requests.
-   *
-   * Input:
-   * - Single PDF file
-   *
-   * Output:
-   * - Compressed PDF
-   */
   async processCompress(request: FastifyRequest, reply: FastifyReply) {
     const jobId = fileManager.generateJobId();
     const { inputDir, outputDir } = await fileManager.setupJobDir(jobId);
-
-    let inputPath = '';
+    this.setupCleanup(reply, jobId);
 
     try {
-      const parts = request.parts();
+      const { filePaths } = await this.parseMultipart(request, inputDir);
 
-      for await (const part of parts) {
-        if (part.type === 'file') {
-          const sanitizedFilename = validator.sanitizeFilename(part.filename);
-
-          inputPath = await fileManager.saveFile(
-            part.file,
-            inputDir,
-            sanitizedFilename
-          );
-        }
+      if (filePaths.length === 0) {
+        return reply.code(400).send({ success: false, message: 'PDF file required' });
       }
 
-      if (!inputPath) {
-        return reply
-          .code(400)
-          .send({ success: false, message: 'PDF file required' });
-      }
-
-      const result = await pdfService.compress(jobId, inputPath, outputDir);
+      const result = await pdfService.compress(jobId, filePaths[0], outputDir);
       return this.sendProcessedFile(reply, result);
-
     } catch (error: any) {
       logger.error(`Compress error [jobId=${jobId}]: ${error.message}`);
       return this.sendError(reply, error.message);
-
-    } finally {
-      reply.raw.on('finish', () =>
-        fileManager.cleanupJobDir(jobId)
-      );
     }
   }
 
-  /**
-   * Handles PDF → Image conversion.
-   *
-   * Input:
-   * - PDF file
-   * - Optional page range
-   *
-   * Output:
-   * - Single joined image (PNG)
-   */
   async processPdfToImage(request: FastifyRequest, reply: FastifyReply) {
     const jobId = fileManager.generateJobId();
     const { inputDir, outputDir } = await fileManager.setupJobDir(jobId);
-
-    let inputPath = '';
-    let pageRange = '1-z';
+    this.setupCleanup(reply, jobId);
 
     try {
-      const parts = request.parts();
+      const { filePaths, fields } = await this.parseMultipart(request, inputDir);
 
-      for await (const part of parts) {
-        if (part.type === 'file') {
-          const sanitizedFilename = validator.sanitizeFilename(part.filename);
-
-          inputPath = await fileManager.saveFile(
-            part.file,
-            inputDir,
-            sanitizedFilename
-          );
-
-        } else if (part.type === 'field' && part.fieldname === 'range') {
-          pageRange = (part.value as string) || '1-z';
-        }
+      if (filePaths.length === 0) {
+        return reply.code(400).send({ success: false, message: 'PDF file required' });
       }
 
-      if (!inputPath) {
-        return reply
-          .code(400)
-          .send({ success: false, message: 'PDF file required' });
-      }
-
-      const result = await pdfService.pdfToImage(
-        jobId,
-        inputPath,
-        outputDir,
-        pageRange
-      );
-
+      const pageRange = fields['range'] || '1-z';
+      const result = await pdfService.pdfToImage(jobId, filePaths[0], outputDir, pageRange);
       return this.sendProcessedFile(reply, result);
-
     } catch (error: any) {
       logger.error(`PDF to Image error [jobId=${jobId}]: ${error.message}`);
       return this.sendError(reply, error.message);
-
-    } finally {
-      reply.raw.on('finish', () =>
-        fileManager.cleanupJobDir(jobId)
-      );
     }
   }
 
-  /**
-   * Retrieves page count of a PDF.
-   *
-   * Output:
-   * - JSON response with page count
-   */
   async getPageCount(request: FastifyRequest, reply: FastifyReply) {
     const jobId = fileManager.generateJobId();
     const { inputDir } = await fileManager.setupJobDir(jobId);
-
-    let inputPath = '';
+    this.setupCleanup(reply, jobId);
 
     try {
-      const parts = request.parts();
+      const { filePaths } = await this.parseMultipart(request, inputDir);
 
-      for await (const part of parts) {
-        if (part.type === 'file') {
-          const sanitizedFilename = validator.sanitizeFilename(part.filename);
-
-          inputPath = await fileManager.saveFile(
-            part.file,
-            inputDir,
-            sanitizedFilename
-          );
-        }
+      if (filePaths.length === 0) {
+        return reply.code(400).send({ success: false, message: 'PDF file required' });
       }
 
-      if (!inputPath) {
-        return reply
-          .code(400)
-          .send({ success: false, message: 'PDF file required' });
-      }
-
-      const count = await pdfService.getPageCount(inputPath);
-
-      return reply.send({
-        success: true,
-        count,
-      });
-
+      const count = await pdfService.getPageCount(filePaths[0]);
+      return reply.send({ success: true, count });
     } catch (error: any) {
       logger.error(`Page count error [jobId=${jobId}]: ${error.message}`);
       return this.sendError(reply, error.message);
-
-    } finally {
-      fileManager.cleanupJobDir(jobId);
     }
   }
 
-  /**
-   * Handles Image → PDF conversion.
-   *
-   * Input:
-   * - One or more images
-   *
-   * Output:
-   * - Single PDF file
-   */
   async processImageToPdf(request: FastifyRequest, reply: FastifyReply) {
     const jobId = fileManager.generateJobId();
     const { inputDir, outputDir } = await fileManager.setupJobDir(jobId);
-
-    const inputPaths: string[] = [];
+    this.setupCleanup(reply, jobId);
 
     try {
-      const parts = request.parts();
+      const { filePaths } = await this.parseMultipart(request, inputDir);
 
-      for await (const part of parts) {
-        if (part.type === 'file') {
-          const sanitizedFilename = validator.sanitizeFilename(part.filename);
-
-          const filePath = await fileManager.saveFile(
-            part.file,
-            inputDir,
-            sanitizedFilename
-          );
-
-          inputPaths.push(filePath);
-        }
+      if (filePaths.length === 0) {
+        return reply.code(400).send({ success: false, message: 'At least one image required' });
       }
 
-      if (inputPaths.length === 0) {
-        return reply
-          .code(400)
-          .send({ success: false, message: 'At least one image required' });
-      }
-
-      const result = await pdfService.imageToPdf(
-        jobId,
-        inputPaths,
-        outputDir
-      );
-
+      const result = await pdfService.imageToPdf(jobId, filePaths, outputDir);
       return this.sendProcessedFile(reply, result);
-
     } catch (error: any) {
       logger.error(`Image to PDF error [jobId=${jobId}]: ${error.message}`);
       return this.sendError(reply, error.message);
-
-    } finally {
-      reply.raw.on('finish', () =>
-        fileManager.cleanupJobDir(jobId)
-      );
     }
   }
 
-  /**
-   * Streams processed file to client.
-   *
-   * @param reply - Fastify reply instance
-   * @param result - Processing result object
-   *
-   * Behavior:
-   * - Sets appropriate headers
-   * - Streams file instead of loading into memory
-   */
   private sendProcessedFile(reply: FastifyReply, result: any) {
     const stream = createReadStream(result.outputPath);
 
@@ -391,9 +210,6 @@ export class PdfController {
       .send(stream);
   }
 
-  /**
-   * Sends standardized error response.
-   */
   private sendError(reply: FastifyReply, message: string) {
     return reply.code(500).send({
       success: false,
@@ -402,32 +218,17 @@ export class PdfController {
     });
   }
 
-  /**
-   * Determines MIME type based on file extension.
-   *
-   * @param filename - Output filename
-   * @returns string - MIME type
-   */
   private getMimeType(filename: string): string {
     const ext = filename.toLowerCase().split('.').pop();
-
     switch (ext) {
-      case 'pdf':
-        return 'application/pdf';
-      case 'png':
-        return 'image/png';
+      case 'pdf': return 'application/pdf';
+      case 'png': return 'image/png';
       case 'jpg':
-      case 'jpeg':
-        return 'image/jpeg';
-      case 'zip':
-        return 'application/zip';
-      default:
-        return 'application/octet-stream';
+      case 'jpeg': return 'image/jpeg';
+      case 'zip': return 'application/zip';
+      default: return 'application/octet-stream';
     }
   }
 }
 
-/**
- * Singleton instance of PdfController.
- */
 export const pdfController = new PdfController();

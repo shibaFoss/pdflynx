@@ -142,17 +142,18 @@ export class FileManager {
     filename: string
   ): Promise<string> {
     const filePath = path.join(directory, filename);
+    const { createWriteStream } = await import('fs');
+    const { pipeline } = await import('stream/promises');
 
-    // Ensure file exists before streaming
-    await fs.writeFile(filePath, '');
-
-    const writeStream = (await import('fs')).createWriteStream(filePath);
-
-    return new Promise((resolve, reject) => {
-      stream.pipe(writeStream);
-      writeStream.on('finish', () => resolve(filePath));
-      writeStream.on('error', (err) => reject(err));
-    });
+    const writeStream = createWriteStream(filePath);
+    
+    try {
+      await pipeline(stream, writeStream);
+      return filePath;
+    } catch (err: any) {
+      logger.error(`Failed to save file ${filename}: ${err.message}`);
+      throw err;
+    }
   }
 }
 

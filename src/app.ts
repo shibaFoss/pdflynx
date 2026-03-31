@@ -1,45 +1,27 @@
 import Fastify from 'fastify';
 import multipart from '@fastify/multipart';
 import cors from '@fastify/cors';
+import rateLimit from '@fastify/rate-limit';
 import pdfRoutes from './routes/pdf.routes.js';
 import { logger } from './utils/logger.js';
 
 /**
  * Main Fastify application instance.
- *
- * Responsibilities:
- * - Initialize server
- * - Register plugins (multipart, CORS)
- * - Register routes
- * - Configure global error handling
- *
- * Notes:
- * - Built with modular architecture (routes, controllers, services)
- * - Uses custom logger instead of Fastify's built-in logger
  */
 const app = Fastify({
   /**
-   * Disable Fastify's internal logger.
-   * We use a custom Pino logger instead for better control.
+   * Use Pino logger in production, disable in dev to use custom structured output
    */
-  logger: false,
+  logger: process.env.NODE_ENV === 'production' ? logger : false,
+  
+  /**
+   * Request timeout protection against hanging connections
+   */
+  connectionTimeout: 120000, 
 });
 
 /**
  * Multipart plugin configuration.
- *
- * Handles file uploads with size and count limits to prevent abuse.
- *
- * Limits:
- * - fieldNameSize: Max length of field names
- * - fieldSize: Max size of non-file fields
- * - fields: Max number of non-file fields
- * - fileSize: Max file size (50MB)
- * - files: Max number of files per request
- *
- * Security:
- * - Prevents large payload attacks
- * - Controls resource usage
  */
 app.register(multipart, {
   limits: {
@@ -53,22 +35,22 @@ app.register(multipart, {
 
 /**
  * CORS configuration.
- *
- * Allows cross-origin requests from any origin.
- *
- * Notes:
- * - Suitable for public APIs
- * - For production, consider restricting origins
+ * Restrict to CORS_ORIGIN in production for security.
  */
 app.register(cors, {
-  origin: true,
+  origin: process.env.NODE_ENV === 'production' ? process.env.CORS_ORIGIN || false : true,
+});
+
+/**
+ * Basic rate limiting to prevent abuse.
+ */
+app.register(rateLimit, {
+  max: 100, // maximum 100 requests per minute
+  timeWindow: '1 minute',
 });
 
 /**
  * Register PDF-related routes.
- *
- * Base path:
- * /api/pdf/*
  */
 app.register(pdfRoutes, {
   prefix: '/api/pdf',
@@ -76,16 +58,6 @@ app.register(pdfRoutes, {
 
 /**
  * Global error handler.
- *
- * Responsibilities:
- * - Catch all unhandled errors
- * - Log errors using custom logger
- * - Send consistent error response format
- *
- * Behavior:
- * - Returns HTTP status code if available
- * - Defaults to 500 (Internal Server Error)
- * - Includes stack trace only in development mode
  */
 app.setErrorHandler((error: any, request, reply) => {
   logger.error(error);
@@ -93,23 +65,8 @@ app.setErrorHandler((error: any, request, reply) => {
   reply.status(error.statusCode || 500).send({
     success: false,
     message: error.message || 'Internal Server Error',
-
-    /**
-     * Include stack trace only in development.
-     * Prevents leaking sensitive information in production.
-     */
-    error:
-      process.env.NODE_ENV === 'development'
-        ? error.stack
-        : undefined,
+    error: process.env.NODE_ENV === 'development' ? error.stack : undefined,
   });
 });
 
-/**
- * Export the configured Fastify app.
- *
- * Used by:
- * - Server bootstrap file (e.g., server.ts)
- * - Testing environments
- */
 export { app };

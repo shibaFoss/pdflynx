@@ -14,10 +14,14 @@ import { logger } from './logger.js';
  */
 export class Validator {
   /**
-   * List of allowed file extensions.
-   * Used as a primary check for file type validation.
+   * strict mapping of extensions to allowed MIME types.
    */
-  private readonly ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png'];
+  private readonly MIME_MAP: Record<string, string[]> = {
+    '.pdf': ['application/pdf'],
+    '.jpg': ['image/jpeg', 'image/jpg'],
+    '.jpeg': ['image/jpeg', 'image/jpg'],
+    '.png': ['image/png'],
+  };
 
   /**
    * Maximum allowed file size in bytes (50 MB).
@@ -30,20 +34,12 @@ export class Validator {
    * @param filename - Name of the uploaded file
    * @param mimeType - MIME type of the file (e.g., 'application/pdf', 'image/png')
    * @returns boolean - True if file type is allowed, otherwise false
-   *
-   * Behavior:
-   * - Checks extension against allowed list
-   * - Allows PDFs explicitly via MIME type
-   * - Allows all image types via MIME type prefix
-   * - Logs a warning if validation fails
    */
   validateFileType(filename: string, mimeType: string): boolean {
     const ext = filename.toLowerCase().substring(filename.lastIndexOf('.'));
+    const allowedMimes = this.MIME_MAP[ext];
 
-    const isAllowed =
-      this.ALLOWED_EXTENSIONS.includes(ext) ||
-      mimeType === 'application/pdf' ||
-      mimeType.startsWith('image/');
+    const isAllowed = allowedMimes ? allowedMimes.includes(mimeType) : false;
 
     if (!isAllowed) {
       logger.warn(`Invalid file type: ${filename} (${mimeType})`);

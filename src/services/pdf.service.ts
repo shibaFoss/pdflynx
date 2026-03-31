@@ -39,15 +39,24 @@ export class PdfService {
     inputPaths: string[],
     outputDir: string
   ): Promise<ProcessingResult> {
+    if (!inputPaths || inputPaths.length < 2) {
+      throw new Error('At least two PDF files are required for merging');
+    }
+
     const filename = `merged_${jobId}.pdf`;
     const outputPath = path.join(outputDir, filename);
 
     // qpdf merge command
     const args = ['--empty', '--pages', ...inputPaths, '--', outputPath];
-    const result = await commandExecutor.execute('qpdf', args);
+    const result = await commandExecutor.execute('qpdf', args, 120000);
 
     if (!result.success) {
       throw new Error(`Merge failed: ${result.error}`);
+    }
+
+    const stats = await fs.stat(outputPath).catch(() => null);
+    if (!stats || stats.size === 0) {
+      throw new Error('Merge resulted in an empty file');
     }
 
     return {
@@ -98,7 +107,8 @@ export class PdfService {
 
     const separateResult = await commandExecutor.execute(
       'pdfseparate',
-      separateArgs
+      separateArgs,
+      120000
     );
 
     if (!separateResult.success) {
@@ -122,7 +132,7 @@ export class PdfService {
     }
 
     const zipArgs = ['-j', zipPath, ...pdfFiles.map(f => path.join(outputDir, f))];
-    const zipResult = await commandExecutor.execute('zip', zipArgs);
+    const zipResult = await commandExecutor.execute('zip', zipArgs, 120000);
 
     if (!zipResult.success) {
       throw new Error(`Zipping failed: ${zipResult.error}`);
@@ -175,13 +185,16 @@ export class PdfService {
     ];
 
     const statsBefore = await fs.stat(inputPath);
-    const result = await commandExecutor.execute('gs', args);
+    const result = await commandExecutor.execute('gs', args, 180000); // Extended timeout
 
     if (!result.success) {
       throw new Error(`Compression failed: ${result.error}`);
     }
 
-    const statsAfter = await fs.stat(outputPath);
+    const statsAfter = await fs.stat(outputPath).catch(() => null);
+    if (!statsAfter || statsAfter.size === 0) {
+      throw new Error('Compression resulted in an empty file');
+    }
 
     logger.info(
       `Compression [jobId=${jobId}]: ${statsBefore.size} -> ${statsAfter.size} bytes (${(
@@ -236,7 +249,7 @@ export class PdfService {
     if (lastPage) args.push('-l', lastPage.toString());
     args.push(inputPath, outputPrefix);
 
-    const result = await commandExecutor.execute('pdftoppm', args);
+    const result = await commandExecutor.execute('pdftoppm', args, 180000);
 
     if (!result.success) {
       throw new Error(`PDF to Image conversion failed: ${result.error}`);
@@ -266,11 +279,17 @@ export class PdfService {
 
     const convertResult = await commandExecutor.execute(
       'convert',
-      convertArgs
+      convertArgs,
+      180000
     );
 
     if (!convertResult.success) {
       throw new Error(`Joining images failed: ${convertResult.error}`);
+    }
+
+    const stats = await fs.stat(joinedPath).catch(() => null);
+    if (!stats || stats.size === 0) {
+      throw new Error('Image joining resulted in an empty file');
     }
 
     return {
@@ -314,14 +333,23 @@ export class PdfService {
     imagePaths: string[],
     outputDir: string
   ): Promise<ProcessingResult> {
+    if (!imagePaths || imagePaths.length === 0) {
+      throw new Error('At least one image is required');
+    }
+
     const filename = `converted_${jobId}.pdf`;
     const outputPath = path.join(outputDir, filename);
 
     const args = [...imagePaths, outputPath];
-    const result = await commandExecutor.execute('convert', args);
+    const result = await commandExecutor.execute('convert', args, 180000);
 
     if (!result.success) {
       throw new Error(`Image to PDF failed: ${result.error}`);
+    }
+
+    const stats = await fs.stat(outputPath).catch(() => null);
+    if (!stats || stats.size === 0) {
+      throw new Error('Conversion resulted in an empty PDF');
     }
 
     return {

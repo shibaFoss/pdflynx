@@ -1,0 +1,286 @@
+import path from 'path';
+import fs from 'fs/promises';
+import { commandExecutor } from '../executors/command.executor.js';
+import { logger } from '../utils/logger.js';
+/**
+ * PdfService handles all PDF-related processing operations.
+ *
+ * Responsibilities:
+ * - Merge, split, compress PDFs
+ * - Convert PDFs to images and vice versa
+ * - Extract metadata (e.g., page count)
+ *
+ * Implementation Notes:
+ * - Relies on external CLI tools:
+ *   - qpdf (merge, page count)
+ *   - pdfseparate (split)
+ *   - zip (archiving)
+ *   - Ghostscript (compression)
+ *   - pdftoppm (PDF → image)
+ *   - ImageMagick (image processing)
+ *
+ * Important:
+ * - All operations are executed via commandExecutor (sandboxed execution layer)
+ * - Errors are thrown for upstream handling (controller/middleware level)
+ */
+export class PdfService {
+    /**
+     * Merges multiple PDF files into a single document.
+     *
+     * @param jobId - Unique job identifier
+     * @param inputPaths - Array of input PDF file paths
+     * @param outputDir - Directory to store merged file
+     * @returns ProcessingResult
+     */
+    async merge(jobId, inputPaths, outputDir) {
+        if (!inputPaths || inputPaths.length < 2) {
+            throw new Error('At least two PDF files are required for merging');
+        }
+        const filename = `merged_${jobId}.pdf`;
+        const outputPath = path.join(outputDir, filename);
+        // qpdf merge command
+        const args = ['--empty', '--pages', ...inputPaths, '--', outputPath];
+        const result = await commandExecutor.execute('qpdf', args, 120000);
+        if (!result.success) {
+            throw new Error(`Merge failed: ${result.error}`);
+        }
+        const stats = await fs.stat(outputPath).catch(() => null);
+        if (!stats || stats.size === 0) {
+            throw new Error('Merge resulted in an empty file');
+        }
+        return {
+            success: true,
+            jobId,
+            outputPath,
+            filename,
+            message: 'PDFs merged successfully',
+        };
+    }
+    /**
+     * Splits a PDF into individual pages and zips the result.
+     *
+     * @param jobId - Unique job identifier
+     * @param inputPath - Input PDF file path
+     * @param outputDir - Directory to store output
+     * @param pageRange - Page range (e.g., "1-5", "2-z")
+     * @returns ProcessingResult (ZIP file)
+     *
+     * Workflow:
+     * 1. Extract pages using pdfseparate
+     * 2. Sort generated files
+     * 3. Archive them into a ZIP
+     */
+    async split(jobId, inputPath, outputDir, pageRange = '1-z') {
+        const outputPattern = path.join(outputDir, 'page-%d.pdf');
+        let firstPage = 1;
+        let lastPage;
+        if (pageRange && pageRange.includes('-')) {
+            const parts = pageRange.split('-');
+            firstPage = parseInt(parts[0]) || 1;
+            if (parts[1] !== 'z') {
+                lastPage = parseInt(parts[1]);
+            }
+        }
+        const separateArgs = ['-f', firstPage.toString()];
+        if (lastPage)
+            separateArgs.push('-l', lastPage.toString());
+        separateArgs.push(inputPath, outputPattern);
+        const separateResult = await commandExecutor.execute('pdfseparate', separateArgs, 120000);
+        if (!separateResult.success) {
+            throw new Error(`Splitting failed: ${separateResult.error}`);
+        }
+        const zipFilename = `split_${jobId}.zip`;
+        const zipPath = path.join(outputDir, zipFilename);
+        const filesInDir = await fs.readdir(outputDir);
+        const pdfFiles = filesInDir
+            .filter(f => f.startsWith('page-') && f.endsWith('.pdf'))
+            .sort((a, b) => {
+            const numA = parseInt(a.replace('page-', '').replace('.pdf', ''));
+            const numB = parseInt(b.replace('page-', '').replace('.pdf', ''));
+            return numA - numB;
+        });
+        if (pdfFiles.length === 0) {
+            throw new Error('No pages were extracted');
+        }
+        const zipArgs = ['-j', zipPath, ...pdfFiles.map(f => path.join(outputDir, f))];
+        const zipResult = await commandExecutor.execute('zip', zipArgs, 120000);
+        if (!zipResult.success) {
+            throw new Error(`Zipping failed: ${zipResult.error}`);
+        }
+        return {
+            success: true,
+            jobId,
+            outputPath: zipPath,
+            filename: zipFilename,
+            message: 'PDF split and zipped successfully',
+        };
+    }
+    /**
+     * Compresses a PDF using Ghostscript.
+     *
+     * @param jobId - Unique job identifier
+     * @param inputPath - Input PDF file path
+     * @param outputDir - Directory to store compressed file
+     * @returns ProcessingResult
+     *
+     * Notes:
+     * - Uses low-resolution settings (/screen) for aggressive compression
+     * - Logs compression ratio for monitoring
+     */
+    async compress(jobId, inputPath, outputDir) {
+        const filename = `compressed_${jobId}.pdf`;
+        const outputPath = path.join(outputDir, filename);
+        const args = [
+            '-sDEVICE=pdfwrite',
+            '-dCompatibilityLevel=1.4',
+            '-dPDFSETTINGS=/screen',
+            '-dNOPAUSE',
+            '-dQUIET',
+            '-dBATCH',
+            '-dColorImageDownsampleType=/Bicubic',
+            '-dColorImageResolution=72',
+            '-dGrayImageDownsampleType=/Bicubic',
+            '-dGrayImageResolution=72',
+            '-dMonoImageDownsampleType=/Bicubic',
+            '-dMonoImageResolution=72',
+            `-sOutputFile=${outputPath}`,
+            inputPath,
+        ];
+        const statsBefore = await fs.stat(inputPath);
+        const result = await commandExecutor.execute('gs', args, 180000); // Extended timeout
+        if (!result.success) {
+            throw new Error(`Compression failed: ${result.error}`);
+        }
+        const statsAfter = await fs.stat(outputPath).catch(() => null);
+        if (!statsAfter || statsAfter.size === 0) {
+            throw new Error('Compression resulted in an empty file');
+        }
+        logger.info(`Compression [jobId=${jobId}]: ${statsBefore.size} -> ${statsAfter.size} bytes (${(((statsBefore.size - statsAfter.size) / statsBefore.size) *
+            100).toFixed(2)}% reduction)`);
+        return {
+            success: true,
+            jobId,
+            outputPath,
+            filename,
+            message: 'PDF compressed successfully',
+        };
+    }
+    /**
+     * Converts a PDF into images and joins them into a single image.
+     *
+     * @param jobId - Unique job identifier
+     * @param inputPath - Input PDF file path
+     * @param outputDir - Directory to store images
+     * @param pageRange - Page range (e.g., "1-3", "1-z")
+     * @returns ProcessingResult (single joined image)
+     *
+     * Workflow:
+     * 1. Convert PDF pages → PNG (pdftoppm)
+     * 2. Sort generated images
+     * 3. Join images vertically (ImageMagick)
+     */
+    async pdfToImage(jobId, inputPath, outputDir, pageRange = '1-z') {
+        const outputPrefix = path.join(outputDir, `page`);
+        let firstPage = 1;
+        let lastPage;
+        if (pageRange && pageRange.includes('-')) {
+            const parts = pageRange.split('-');
+            firstPage = parseInt(parts[0]) || 1;
+            if (parts[1] !== 'z') {
+                lastPage = parseInt(parts[1]);
+            }
+        }
+        const args = ['-png', '-r', '72', '-f', firstPage.toString()];
+        if (lastPage)
+            args.push('-l', lastPage.toString());
+        args.push(inputPath, outputPrefix);
+        const result = await commandExecutor.execute('pdftoppm', args, 180000);
+        if (!result.success) {
+            throw new Error(`PDF to Image conversion failed: ${result.error}`);
+        }
+        const filesInDir = await fs.readdir(outputDir);
+        const images = filesInDir
+            .filter(f => f.startsWith('page-') && f.endsWith('.png'))
+            .sort((a, b) => {
+            const numA = parseInt(a.replace('page-', '').replace('.png', ''));
+            const numB = parseInt(b.replace('page-', '').replace('.png', ''));
+            return numA - numB;
+        });
+        if (images.length === 0) {
+            throw new Error('No images were generated');
+        }
+        const joinedFilename = `joined_${jobId}.png`;
+        const joinedPath = path.join(outputDir, joinedFilename);
+        const convertArgs = [
+            ...images.map(img => path.join(outputDir, img)),
+            '-append',
+            joinedPath,
+        ];
+        const convertResult = await commandExecutor.execute('convert', convertArgs, 180000);
+        if (!convertResult.success) {
+            throw new Error(`Joining images failed: ${convertResult.error}`);
+        }
+        const stats = await fs.stat(joinedPath).catch(() => null);
+        if (!stats || stats.size === 0) {
+            throw new Error('Image joining resulted in an empty file');
+        }
+        return {
+            success: true,
+            jobId,
+            outputPath: joinedPath,
+            filename: joinedFilename,
+            message: 'PDF converted to a single joined image successfully',
+        };
+    }
+    /**
+     * Retrieves the total number of pages in a PDF.
+     *
+     * @param inputPath - Input PDF file path
+     * @returns number - Page count
+     */
+    async getPageCount(inputPath) {
+        const result = await commandExecutor.execute('qpdf', [
+            '--show-npages',
+            inputPath,
+        ]);
+        if (!result.success) {
+            throw new Error(`Could not get page count: ${result.error}`);
+        }
+        return parseInt(result.output.trim());
+    }
+    /**
+     * Converts multiple images into a single PDF.
+     *
+     * @param jobId - Unique job identifier
+     * @param imagePaths - Array of image file paths
+     * @param outputDir - Directory to store PDF
+     * @returns ProcessingResult
+     */
+    async imageToPdf(jobId, imagePaths, outputDir) {
+        if (!imagePaths || imagePaths.length === 0) {
+            throw new Error('At least one image is required');
+        }
+        const filename = `converted_${jobId}.pdf`;
+        const outputPath = path.join(outputDir, filename);
+        const args = [...imagePaths, outputPath];
+        const result = await commandExecutor.execute('convert', args, 180000);
+        if (!result.success) {
+            throw new Error(`Image to PDF failed: ${result.error}`);
+        }
+        const stats = await fs.stat(outputPath).catch(() => null);
+        if (!stats || stats.size === 0) {
+            throw new Error('Conversion resulted in an empty PDF');
+        }
+        return {
+            success: true,
+            jobId,
+            outputPath,
+            filename,
+            message: 'Images converted to PDF successfully',
+        };
+    }
+}
+/**
+ * Singleton instance of PdfService for application-wide usage.
+ */
+export const pdfService = new PdfService();
