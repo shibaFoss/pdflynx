@@ -7,4 +7,5 @@ export default async function pdfRoutes(fastify: FastifyInstance, options: Fasti
   fastify.post('/compress', (req, rep) => pdfController.processCompress(req, rep));
   fastify.post('/pdf-to-image', (req, rep) => pdfController.processPdfToImage(req, rep));
   fastify.post('/image-to-pdf', (req, rep) => pdfController.processImageToPdf(req, rep));
+  fastify.post('/pages', (req, rep) => pdfController.getPageCount(req, rep));
 }

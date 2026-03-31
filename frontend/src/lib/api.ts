@@ -25,12 +25,18 @@ export const api = {
       responseType: 'blob',
     });
   },
-  pdfToImage: (file: File) => {
+  pdfToImage: (file: File, range: string = '1-z') => {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('range', range);
     return axios.post(`${API_BASE_URL}/pdf-to-image`, formData, {
       responseType: 'blob',
     });
+  },
+  getPageCount: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return axios.post<{ success: boolean; count: number }>(`${API_BASE_URL}/pages`, formData);
   },
   imageToPdf: (files: File[]) => {
     const formData = new FormData();

@@ -126,11 +126,25 @@ export class PdfService {
     };
   }
 
-  async pdfToImage(jobId: string, inputPath: string, outputDir: string): Promise<ProcessingResult> {
+  async pdfToImage(jobId: string, inputPath: string, outputDir: string, pageRange: string = '1-z'): Promise<ProcessingResult> {
     const outputPrefix = path.join(outputDir, `page`); 
     
-    // 1. Convert all pages to PNGs at a lower DPI to avoid exceeding ImageMagick limits
-    const args = ['-png', '-r', '72', inputPath, outputPrefix];
+    // Parse range for pdftoppm (-f and -l)
+    let firstPage = 1;
+    let lastPage: number | undefined;
+
+    if (pageRange && pageRange.includes('-')) {
+      const parts = pageRange.split('-');
+      firstPage = parseInt(parts[0]) || 1;
+      if (parts[1] !== 'z') {
+        lastPage = parseInt(parts[1]);
+      }
+    }
+
+    const args = ['-png', '-r', '72', '-f', firstPage.toString()];
+    if (lastPage) args.push('-l', lastPage.toString());
+    args.push(inputPath, outputPrefix);
+    
     const result = await commandExecutor.execute('pdftoppm', args);
 
     if (!result.success) {
@@ -169,6 +183,12 @@ export class PdfService {
       filename: joinedFilename,
       message: 'PDF converted to a single joined image successfully',
     };
+  }
+
+  async getPageCount(inputPath: string): Promise<number> {
+    const result = await commandExecutor.execute('qpdf', ['--show-npages', inputPath]);
+    if (!result.success) throw new Error(`Could not get page count: ${result.error}`);
+    return parseInt(result.output.trim());
   }
 
   async imageToPdf(jobId: string, imagePaths: string[], outputDir: string): Promise<ProcessingResult> {

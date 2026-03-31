@@ -100,6 +100,35 @@ export class PdfController {
     const jobId = fileManager.generateJobId();
     const { inputDir, outputDir } = await fileManager.setupJobDir(jobId);
     let inputPath = '';
+    let pageRange = '1-z';
+
+    try {
+      const parts = request.parts();
+      for await (const part of parts) {
+        if (part.type === 'file') {
+          const sanitizedFilename = validator.sanitizeFilename(part.filename);
+          inputPath = await fileManager.saveFile(part.file, inputDir, sanitizedFilename);
+        } else if (part.type === 'field' && part.fieldname === 'range') {
+          pageRange = (part.value as string) || '1-z';
+        }
+      }
+
+      if (!inputPath) return reply.code(400).send({ success: false, message: 'PDF file required' });
+
+      const result = await pdfService.pdfToImage(jobId, inputPath, outputDir, pageRange);
+      return this.sendProcessedFile(reply, result);
+    } catch (error: any) {
+      logger.error(`PDF to Image error [jobId=${jobId}]: ${error.message}`);
+      return this.sendError(reply, error.message);
+    } finally {
+      reply.raw.on('finish', () => fileManager.cleanupJobDir(jobId));
+    }
+  }
+
+  async getPageCount(request: FastifyRequest, reply: FastifyReply) {
+    const jobId = fileManager.generateJobId();
+    const { inputDir } = await fileManager.setupJobDir(jobId);
+    let inputPath = '';
 
     try {
       const parts = request.parts();
@@ -112,13 +141,13 @@ export class PdfController {
 
       if (!inputPath) return reply.code(400).send({ success: false, message: 'PDF file required' });
 
-      const result = await pdfService.pdfToImage(jobId, inputPath, outputDir);
-      return this.sendProcessedFile(reply, result);
+      const count = await pdfService.getPageCount(inputPath);
+      return reply.send({ success: true, count });
     } catch (error: any) {
-      logger.error(`PDF to Image error [jobId=${jobId}]: ${error.message}`);
+      logger.error(`Page count error [jobId=${jobId}]: ${error.message}`);
       return this.sendError(reply, error.message);
     } finally {
-      reply.raw.on('finish', () => fileManager.cleanupJobDir(jobId));
+      fileManager.cleanupJobDir(jobId);
     }
   }
 
