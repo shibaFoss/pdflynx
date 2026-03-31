@@ -32,7 +32,7 @@ export default function SplitPdfPage() {
       setProgress(80);
       
       const blob = response.data;
-      const filename = `split_pdf_${Date.now()}.pdf`;
+      const filename = `split_pdf_${Date.now()}.zip`;
       
       setResult({ blob, filename });
       setProgress(100);

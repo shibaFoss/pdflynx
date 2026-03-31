@@ -35,44 +35,57 @@ export class PdfService {
   }
 
   async split(jobId: string, inputPath: string, outputDir: string, pageRange: string = '1-z'): Promise<ProcessingResult> {
-    const filename = `split_${jobId}.pdf`;
-    const outputPath = path.join(outputDir, filename);
-
-    // Using gs for simple page ranges
+    // 1. Separate the PDF into multiple files
+    const outputPattern = path.join(outputDir, 'page-%d.pdf');
+    
+    // Determine the page range if possible (pdfseparate handles -f and -l)
     let firstPage = 1;
-    let lastPage: number | string = '9999';
+    let lastPage: number | undefined;
 
     if (pageRange && pageRange.includes('-')) {
       const parts = pageRange.split('-');
       firstPage = parseInt(parts[0]) || 1;
       if (parts[1] !== 'z') {
-        lastPage = parseInt(parts[1]) || 9999;
+        lastPage = parseInt(parts[1]);
       }
     }
 
-    const args = [
-      '-sDEVICE=pdfwrite',
-      '-dNOPAUSE',
-      '-dBATCH',
-      '-dSAFER',
-      `-dFirstPage=${firstPage}`,
-      `-dLastPage=${lastPage}`,
-      `-sOutputFile=${outputPath}`,
-      inputPath,
-    ];
-    
-    const result = await commandExecutor.execute('gs', args);
+    const separateArgs = ['-f', firstPage.toString()];
+    if (lastPage) {
+      separateArgs.push('-l', lastPage.toString());
+    }
+    separateArgs.push(inputPath, outputPattern);
 
-    if (!result.success) {
-      throw new Error(`Split failed: ${result.error}`);
+    const separateResult = await commandExecutor.execute('pdfseparate', separateArgs);
+
+    if (!separateResult.success) {
+      throw new Error(`Splitting failed: ${separateResult.error}`);
+    }
+
+    // 2. Zip the generated files
+    const zipFilename = `split_${jobId}.zip`;
+    const zipPath = path.join(outputDir, zipFilename);
+    const filesInDir = await fs.readdir(outputDir);
+    const pdfFiles = filesInDir.filter(f => f.startsWith('page-') && f.endsWith('.pdf'));
+
+    if (pdfFiles.length === 0) {
+      throw new Error('No pages were extracted');
+    }
+
+    // zip -j zipPath page-1.pdf page-2.pdf ...
+    const zipArgs = ['-j', zipPath, ...pdfFiles.map(f => path.join(outputDir, f))];
+    const zipResult = await commandExecutor.execute('zip', zipArgs);
+
+    if (!zipResult.success) {
+      throw new Error(`Zipping failed: ${zipResult.error}`);
     }
 
     return {
       success: true,
       jobId,
-      outputPath,
-      filename,
-      message: 'PDF split successfully',
+      outputPath: zipPath,
+      filename: zipFilename,
+      message: 'PDF split and zipped successfully',
     };
   }
 

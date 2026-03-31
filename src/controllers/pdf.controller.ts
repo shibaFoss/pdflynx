@@ -174,6 +174,7 @@ export class PdfController {
       case 'png': return 'image/png';
       case 'jpg':
       case 'jpeg': return 'image/jpeg';
+      case 'zip': return 'application/zip';
       default: return 'application/octet-stream';
     }
   }
