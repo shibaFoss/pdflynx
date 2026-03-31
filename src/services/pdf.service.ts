@@ -9,9 +9,17 @@ export class PdfService {
     const filename = `merged_${jobId}.pdf`;
     const outputPath = path.join(outputDir, filename);
 
-    // qpdf --empty --pages file1.pdf file2.pdf -- output.pdf
-    const args = ['--empty', '--pages', ...inputPaths, '--', outputPath];
-    const result = await commandExecutor.execute('qpdf', args);
+    // Using gs instead of pdfunite or qpdf for better handling of encrypted/complex files
+    const args = [
+      '-dNOPAUSE',
+      '-sDEVICE=pdfwrite',
+      `-sOUTPUTFILE=${outputPath}`,
+      '-dBATCH',
+      '-dQUIET',
+      ...inputPaths,
+    ];
+    
+    const result = await commandExecutor.execute('gs', args);
 
     if (!result.success) {
       throw new Error(`Merge failed: ${result.error}`);
@@ -30,10 +38,30 @@ export class PdfService {
     const filename = `split_${jobId}.pdf`;
     const outputPath = path.join(outputDir, filename);
 
-    // qpdf input.pdf --pages . 1-5 -- output.pdf
-    // '.' refers to the input file itself
-    const args = [inputPath, '--pages', '.', pageRange, '--', outputPath];
-    const result = await commandExecutor.execute('qpdf', args);
+    // Using gs for simple page ranges
+    let firstPage = 1;
+    let lastPage: number | string = '9999';
+
+    if (pageRange && pageRange.includes('-')) {
+      const parts = pageRange.split('-');
+      firstPage = parseInt(parts[0]) || 1;
+      if (parts[1] !== 'z') {
+        lastPage = parseInt(parts[1]) || 9999;
+      }
+    }
+
+    const args = [
+      '-sDEVICE=pdfwrite',
+      '-dNOPAUSE',
+      '-dBATCH',
+      '-dSAFER',
+      `-dFirstPage=${firstPage}`,
+      `-dLastPage=${lastPage}`,
+      `-sOutputFile=${outputPath}`,
+      inputPath,
+    ];
+    
+    const result = await commandExecutor.execute('gs', args);
 
     if (!result.success) {
       throw new Error(`Split failed: ${result.error}`);
@@ -52,7 +80,6 @@ export class PdfService {
     const filename = `compressed_${jobId}.pdf`;
     const outputPath = path.join(outputDir, filename);
 
-    // gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/screen -dNOPAUSE -dQUIET -dBATCH -sOutputFile=compressed.pdf input.pdf
     const args = [
       '-sDEVICE=pdfwrite',
       '-dCompatibilityLevel=1.4',
@@ -79,27 +106,23 @@ export class PdfService {
   }
 
   async pdfToImage(jobId: string, inputPath: string, outputDir: string): Promise<ProcessingResult> {
-    const outputPrefix = path.join(outputDir, `image_${jobId}`);
+    const outputPrefix = path.join(outputDir, `image`); 
     
-    // pdftoppm -png -r 150 input.pdf output_prefix
-    const args = ['-png', '-r', '150', inputPath, outputPrefix];
+    const args = ['-png', '-singlefile', '-r', '150', inputPath, outputPrefix];
     const result = await commandExecutor.execute('pdftoppm', args);
 
     if (!result.success) {
       throw new Error(`PDF to Image failed: ${result.error}`);
     }
 
-    // pdftoppm generates files with suffix like -1.png, -2.png, etc.
-    // For MVP, we'll return the first one or a zip if we had multiple (we'll just return the first for now).
-    const files = await fs.readdir(outputDir);
-    const firstImage = files.find(f => f.startsWith(`image_${jobId}-1`)) || files[0];
+    const firstImage = 'image.png';
     const outputPath = path.join(outputDir, firstImage);
 
     return {
       success: true,
       jobId,
       outputPath,
-      filename: firstImage,
+      filename: `image_${jobId}.png`,
       message: 'PDF converted to image successfully',
     };
   }
@@ -108,9 +131,7 @@ export class PdfService {
     const filename = `converted_${jobId}.pdf`;
     const outputPath = path.join(outputDir, filename);
 
-    // magick image1.jpg image2.png output.pdf
-    // Or for older versions 'convert'
-    const command = 'convert'; // Safer default if 'magick' isn't on PATH as is
+    const command = 'convert'; 
     const args = [...imagePaths, outputPath];
     const result = await commandExecutor.execute(command, args);
 
