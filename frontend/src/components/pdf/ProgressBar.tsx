@@ -1,4 +1,7 @@
+'use client';
+
 import { motion } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
 
 interface ProgressBarProps {
   progress: number;
@@ -8,37 +11,52 @@ interface ProgressBarProps {
 
 export const ProgressBar = ({ progress, label, sublabel }: ProgressBarProps) => {
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-6 text-center animate-in fade-in zoom-in duration-500">
-      <div className="space-y-3">
-        <h3 className="text-2xl font-bold tracking-tight text-foreground">{label || 'Processing...'}</h3>
-        <p className="text-sm text-muted-foreground font-medium">{sublabel || 'Please wait while we handle your PDF'}</p>
+    <div className="w-full max-w-2xl mx-auto space-y-10 text-center animate-in fade-in zoom-in-95 duration-700">
+      <div className="space-y-4">
+        <h3 className="text-4xl font-black tracking-tight text-foreground">{label || 'Processing...'}</h3>
+        <p className="text-lg text-muted-foreground font-medium">{sublabel || 'Our servers are working their magic on your PDF'}</p>
       </div>
-      <div className="relative pt-1">
-        <div className="flex mb-3 items-center justify-between">
-          <div>
-            <span className="text-xs font-bold inline-block py-1 px-3 uppercase rounded-full text-white bg-primary shadow-sm shadow-primary/20">
-              In Progress
+
+      <div className="relative pt-4 space-y-4">
+        <div className="flex items-end justify-between px-2">
+          <div className="flex items-center gap-3">
+            <div className="bg-primary p-2 rounded-lg text-white shadow-lg shadow-primary/20">
+               <Loader2 size={18} className="animate-spin" />
+            </div>
+            <span className="text-sm font-black text-primary uppercase tracking-widest">
+              Live Progress
             </span>
           </div>
           <div className="text-right">
-            <span className="text-sm font-bold inline-block text-primary">
+            <span className="text-2xl font-black text-primary">
               {progress}%
             </span>
           </div>
         </div>
-        <div className="overflow-hidden h-4 mb-4 text-xs flex rounded-full bg-primary/10 shadow-inner">
+
+        <div className="relative h-6 rounded-full bg-secondary/50 border-2 border-border/50 p-1 overflow-hidden shadow-inner flex items-center">
           <motion.div
             initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            className="flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary shadow-lg shadow-primary/20 relative"
+            animate={{ width: `${Math.max(progress, 5)}%` }}
+            transition={{ duration: 0.5, ease: "circOut" }}
+            className="h-full rounded-full bg-primary shadow-2xl shadow-primary/40 relative overflow-hidden"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+            {/* Glossy overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-white/20" />
+            {/* Animated shimmer */}
+            <motion.div 
+               animate={{ x: ['-100%', '200%'] }}
+               transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+               className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-full skew-x-[-20deg]" 
+            />
           </motion.div>
         </div>
       </div>
-      <div className="flex justify-center gap-4 py-4">
-        <div className="animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent shadow-sm"></div>
+
+      <div className="flex justify-center gap-8 py-4 opacity-40">
+         <div className="w-2 h-2 rounded-full bg-primary animate-bounce [animation-delay:-0.3s]" />
+         <div className="w-2 h-2 rounded-full bg-primary animate-bounce [animation-delay:-0.15s]" />
+         <div className="w-2 h-2 rounded-full bg-primary animate-bounce" />
       </div>
     </div>
   );

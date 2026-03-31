@@ -1,30 +1,54 @@
+'use client';
+
 import Link from 'next/link';
-import { FileText } from 'lucide-react';
+import { FileText, ChevronDown } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { motion } from 'framer-motion';
 
 export const Header = () => {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <motion.header 
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl transition-all duration-300"
+    >
+      <div className="container mx-auto px-4 h-20 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="bg-primary p-2 rounded-xl text-white transform group-hover:rotate-12 transition-transform shadow-md ring-4 ring-primary/20">
-            <FileText size={20} />
+          <div className="bg-primary p-2.5 rounded-2xl text-white transform group-hover:rotate-12 transition-all shadow-xl shadow-primary/20 ring-4 ring-primary/5">
+            <FileText size={22} strokeWidth={2.5} />
           </div>
-          <span className="text-xl font-bold tracking-tight text-foreground">
-            pdf<span className="text-primary">lynx</span>
+          <span className="text-2xl font-black tracking-tight text-foreground group-hover:tracking-normal transition-all">
+            pdf<span className="text-primary italic">lynx</span>
           </span>
         </Link>
-        <nav className="hidden md:flex items-center gap-6">
-          <Link href="/merge-pdf" className="text-sm font-medium hover:text-primary transition-colors">Merge</Link>
-          <Link href="/split-pdf" className="text-sm font-medium hover:text-primary transition-colors">Split</Link>
-          <Link href="/compress-pdf" className="text-sm font-medium hover:text-primary transition-colors">Compress</Link>
-          <Link href="/pdf-to-image" className="text-sm font-medium hover:text-primary transition-colors">PDF to Image</Link>
-          <Link href="/image-to-pdf" className="text-sm font-medium hover:text-primary transition-colors">Image to PDF</Link>
+
+        <nav className="hidden lg:flex items-center gap-1 bg-secondary/50 p-1 rounded-2xl border border-border/50">
+          {[
+            { name: 'Merge', href: '/merge-pdf' },
+            { name: 'Split', href: '/split-pdf' },
+            { name: 'Compress', href: '/compress-pdf' },
+            { name: 'PDF to Image', href: '/pdf-to-image' },
+            { name: 'Image to PDF', href: '/image-to-pdf' }
+          ].map((item) => (
+            <Link 
+              key={item.href}
+              href={item.href} 
+              className="px-5 py-2.5 text-sm font-bold text-muted-foreground hover:text-primary hover:bg-white dark:hover:bg-slate-900 rounded-xl transition-all duration-300"
+            >
+              {item.name}
+            </Link>
+          ))}
         </nav>
+
         <div className="flex items-center gap-4">
-          <Button size="sm" className="hidden sm:inline-flex">Get Started</Button>
+          <Button variant="outline" className="hidden sm:inline-flex rounded-2xl px-6 border-2 font-bold hover:bg-secondary">
+            Sign In
+          </Button>
+          <Button className="hidden sm:inline-flex rounded-2xl px-8 shadow-xl shadow-primary/20 font-bold active:scale-95 transition-transform">
+            Try Premium
+          </Button>
         </div>
       </div>
-    </header>
+    </motion.header>
   );
 };
