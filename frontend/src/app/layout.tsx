@@ -1,17 +1,18 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Ubuntu, Ubuntu_Mono } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const ubuntu = Ubuntu({
+  variable: "--font-ubuntu",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "700"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const ubuntuMono = Ubuntu_Mono({
+  variable: "--font-ubuntu-mono",
   subsets: ["latin"],
+  weight: ["400", "700"],
 });
 
 export const metadata: Metadata = {
@@ -54,7 +55,7 @@ export default function RootLayout({
         </div>
 
         <Header />
-        <main className="flex-1 overflow-x-hidden pt-6 pb-0 relative z-10">
+        <main className="flex-1 overflow-x-hidden pt-0 pb-0 relative z-10">
           {children}
         </main>
         <Footer />
