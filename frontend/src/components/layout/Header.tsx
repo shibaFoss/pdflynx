@@ -10,7 +10,7 @@ export const Header = () => {
     <motion.header 
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl transition-all duration-300"
+      className="sticky top-0 z-50 w-full border-b border-white/5 bg-background/60 backdrop-blur-2xl transition-all duration-300"
     >
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 group">

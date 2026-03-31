@@ -19,7 +19,7 @@ const TOOLS = [
     description: 'Combine multiple PDF files into one document in seconds.',
     icon: Layers,
     href: '/merge-pdf',
-    color: 'bg-indigo-500',
+    color: 'bg-indigo-600',
   },
   {
     title: 'Split PDF',
@@ -33,7 +33,7 @@ const TOOLS = [
     description: 'Reduce file size while optimizing for maximum PDF quality.',
     icon: Zap,
     href: '/compress-pdf',
-    color: 'bg-amber-500',
+    color: 'bg-primary',
   },
   {
     title: 'PDF to Image',
@@ -47,7 +47,7 @@ const TOOLS = [
     description: 'Transform your images into a professional PDF document.',
     icon: ImageIcon,
     href: '/image-to-pdf',
-    color: 'bg-emerald-500',
+    color: 'bg-accent',
   },
 ];
 
@@ -55,27 +55,27 @@ export default function Home() {
   return (
     <div className="relative overflow-hidden">
       {/* Background Orbs */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl -z-10 animate-pulse" />
-      <div className="absolute -bottom-24 right-1/4 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-3xl -z-10" />
+      <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] -z-10 animate-pulse" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-accent/10 rounded-full blur-[120px] -z-10 animate-pulse delay-1000" />
 
       <section className="container mx-auto px-4 pt-12 pb-20">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center space-y-6 max-w-4xl mx-auto mb-12"
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="text-center space-y-8 max-w-4xl mx-auto mb-16"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20 backdrop-blur-md">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-xs font-black border border-primary/20 backdrop-blur-xl animate-float">
             <Sparkles size={14} />
-            <span>Open Source & Forever Free</span>
+            <span className="uppercase tracking-widest text-[10px]">Premium Open-Source Experience</span>
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-[0.95] text-foreground">
-            The PDF tools you <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-indigo-600">actually</span> love.
+          <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.85] text-foreground">
+            PDF tools that <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent animate-gradient">elevate</span> your workflow.
           </h1>
           
-          <p className="text-lg md:text-xl text-muted-foreground font-medium max-w-2xl mx-auto leading-relaxed">
-            Fast, secure, and beautiful. Process your documents without annoying limits or privacy concerns.
+          <p className="text-xl md:text-2xl text-muted-foreground font-medium max-w-2xl mx-auto leading-relaxed">
+            Beautifully crafted, blindingly fast, and completely free. Process documents without limits or compromises.
           </p>
         </motion.div>
 
