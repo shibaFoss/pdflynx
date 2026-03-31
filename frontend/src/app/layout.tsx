@@ -54,7 +54,7 @@ export default function RootLayout({
         </div>
 
         <Header />
-        <main className="flex-1 overflow-x-hidden pt-6 pb-12 relative z-10">
+        <main className="flex-1 overflow-x-hidden pt-6 pb-0 relative z-10">
           {children}
         </main>
         <Footer />

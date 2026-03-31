@@ -5,11 +5,11 @@ import { Mail, Globe, ShieldCheck, Heart, Code } from 'lucide-react';
 
 export const Footer = () => {
   return (
-    <footer className="relative border-t border-border/50 bg-white dark:bg-slate-950 mt-20 overflow-hidden">
+    <footer className="relative border-t border-border/20 bg-background mt-0 overflow-hidden">
       {/* Decorative background element */}
       <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[100px] -z-10 -mr-48 -mb-48" />
 
-      <div className="container mx-auto px-4 pt-20 pb-12">
+      <div className="container mx-auto px-4 pt-12 pb-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-16 lg:gap-10">
           <div className="lg:col-span-2 space-y-8">
             <Link href="/" className="inline-block group">

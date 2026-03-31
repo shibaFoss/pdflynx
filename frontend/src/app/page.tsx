@@ -58,7 +58,7 @@ export default function Home() {
       <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] -z-10 animate-pulse" />
       <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-accent/10 rounded-full blur-[120px] -z-10 animate-pulse delay-1000" />
 
-      <section className="container mx-auto px-4 pt-12 pb-20">
+      <section className="container mx-auto px-4 pt-12 pb-12">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -104,29 +104,61 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.8 }}
-          className="mt-32 pt-20 border-t border-border/50 grid grid-cols-1 md:grid-cols-3 gap-12"
+          className="mt-20 pt-16 border-t border-border/20 grid grid-cols-1 md:grid-cols-3 gap-12"
         >
           <div className="flex flex-col items-center text-center space-y-4">
-             <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500">
+             <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-500 ring-4 ring-indigo-500/5">
                 <ShieldCheck size={28} />
              </div>
              <h3 className="text-xl font-bold">Privacy First</h3>
-             <p className="text-muted-foreground">Your files are processed locally and deleted immediately after. We never see your data.</p>
+             <p className="text-muted-foreground text-sm font-medium">Your files are processed locally and deleted immediately after. We never see your data.</p>
           </div>
           <div className="flex flex-col items-center text-center space-y-4">
-             <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+             <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center text-accent ring-4 ring-accent/5">
                 <Zap size={28} />
              </div>
              <h3 className="text-xl font-bold">Instant Speed</h3>
-             <p className="text-muted-foreground">Blazing fast processing using high-performance backend tools and modern architectures.</p>
+             <p className="text-muted-foreground text-sm font-medium">Blazing fast processing using high-performance backend tools and modern architectures.</p>
           </div>
           <div className="flex flex-col items-center text-center space-y-4">
-             <div className="w-14 h-14 rounded-2xl bg-orange-500/10 flex items-center justify-center text-orange-500">
+             <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary ring-4 ring-primary/5">
                 <Heart size={28} />
              </div>
              <h3 className="text-xl font-bold">Always Free</h3>
-             <p className="text-muted-foreground">No subscriptions, no hidden fees, no limits. Just open source tools for everyone.</p>
+             <p className="text-muted-foreground text-sm font-medium">No subscriptions, no hidden fees, no limits. Just open source tools for everyone.</p>
           </div>
+        </motion.div>
+
+        {/* Final Hook CTA */}
+        <motion.div 
+           initial={{ opacity: 0, scale: 0.95 }}
+           whileInView={{ opacity: 1, scale: 1 }}
+           viewport={{ once: true }}
+           transition={{ duration: 1 }}
+           className="mt-32 relative overflow-hidden premium-card p-12 md:p-20 text-center border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-transparent to-accent/5"
+        >
+           <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-[100px] -mr-32 -mt-32" />
+           <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent/10 rounded-full blur-[100px] -ml-32 -mb-32" />
+           
+           <div className="relative z-10 space-y-10">
+              <h2 className="text-4xl md:text-6xl font-black tracking-tighter leading-none">
+                 Ready to <span className="text-primary italic">transform</span> your workflow?
+              </h2>
+              <p className="text-lg md:text-xl text-muted-foreground font-medium max-w-xl mx-auto">
+                 Experience the true power of open-source document tools. No signups, no limits, just pure performance.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+                 <button 
+                   onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                   className="px-10 h-16 rounded-full bg-primary text-white font-black text-lg shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all w-full sm:w-auto"
+                 >
+                    Get Started Free
+                 </button>
+                 <button className="px-10 h-16 rounded-full glass font-black text-lg hover:bg-white/10 transition-all border-white/10 text-foreground w-full sm:w-auto">
+                    View on GitHub
+                 </button>
+              </div>
+           </div>
         </motion.div>
       </section>
     </div>
