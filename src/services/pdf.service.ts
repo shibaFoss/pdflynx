@@ -9,17 +9,9 @@ export class PdfService {
     const filename = `merged_${jobId}.pdf`;
     const outputPath = path.join(outputDir, filename);
 
-    // Using gs instead of pdfunite or qpdf for better handling of encrypted/complex files
-    const args = [
-      '-dNOPAUSE',
-      '-sDEVICE=pdfwrite',
-      `-sOUTPUTFILE=${outputPath}`,
-      '-dBATCH',
-      '-dQUIET',
-      ...inputPaths,
-    ];
-    
-    const result = await commandExecutor.execute('gs', args);
+    // Using qpdf for merging
+    const args = ['--empty', '--pages', ...inputPaths, '--', outputPath];
+    const result = await commandExecutor.execute('qpdf', args);
 
     if (!result.success) {
       throw new Error(`Merge failed: ${result.error}`);
@@ -38,7 +30,7 @@ export class PdfService {
     // 1. Separate the PDF into multiple files
     const outputPattern = path.join(outputDir, 'page-%d.pdf');
     
-    // Determine the page range if possible (pdfseparate handles -f and -l)
+    // Determine the page range if possible
     let firstPage = 1;
     let lastPage: number | undefined;
 
@@ -66,13 +58,18 @@ export class PdfService {
     const zipFilename = `split_${jobId}.zip`;
     const zipPath = path.join(outputDir, zipFilename);
     const filesInDir = await fs.readdir(outputDir);
-    const pdfFiles = filesInDir.filter(f => f.startsWith('page-') && f.endsWith('.pdf'));
+    const pdfFiles = filesInDir
+      .filter(f => f.startsWith('page-') && f.endsWith('.pdf'))
+      .sort((a, b) => {
+        const numA = parseInt(a.replace('page-', '').replace('.pdf', ''));
+        const numB = parseInt(b.replace('page-', '').replace('.pdf', ''));
+        return numA - numB;
+      });
 
     if (pdfFiles.length === 0) {
       throw new Error('No pages were extracted');
     }
 
-    // zip -j zipPath page-1.pdf page-2.pdf ...
     const zipArgs = ['-j', zipPath, ...pdfFiles.map(f => path.join(outputDir, f))];
     const zipResult = await commandExecutor.execute('zip', zipArgs);
 
@@ -93,7 +90,6 @@ export class PdfService {
     const filename = `compressed_${jobId}.pdf`;
     const outputPath = path.join(outputDir, filename);
 
-    // More aggressive Ghostscript settings for compression
     const args = [
       '-sDEVICE=pdfwrite',
       '-dCompatibilityLevel=1.4',
@@ -131,24 +127,47 @@ export class PdfService {
   }
 
   async pdfToImage(jobId: string, inputPath: string, outputDir: string): Promise<ProcessingResult> {
-    const outputPrefix = path.join(outputDir, `image`); 
+    const outputPrefix = path.join(outputDir, `page`); 
     
-    const args = ['-png', '-singlefile', '-r', '150', inputPath, outputPrefix];
+    // 1. Convert all pages to PNGs at a lower DPI to avoid exceeding ImageMagick limits
+    const args = ['-png', '-r', '72', inputPath, outputPrefix];
     const result = await commandExecutor.execute('pdftoppm', args);
 
     if (!result.success) {
-      throw new Error(`PDF to Image failed: ${result.error}`);
+      throw new Error(`PDF to Image conversion failed: ${result.error}`);
     }
 
-    const firstImage = 'image.png';
-    const outputPath = path.join(outputDir, firstImage);
+    // 2. Identify all generated images and sort them
+    const filesInDir = await fs.readdir(outputDir);
+    const images = filesInDir
+      .filter(f => f.startsWith('page-') && f.endsWith('.png'))
+      .sort((a, b) => {
+        const numA = parseInt(a.replace('page-', '').replace('.png', ''));
+        const numB = parseInt(b.replace('page-', '').replace('.png', ''));
+        return numA - numB;
+      });
+
+    if (images.length === 0) {
+      throw new Error('No images were generated');
+    }
+
+    // 3. Join images vertically using ImageMagick
+    const joinedFilename = `joined_${jobId}.png`;
+    const joinedPath = path.join(outputDir, joinedFilename);
+    const convertArgs = [...images.map(img => path.join(outputDir, img)), '-append', joinedPath];
+    
+    const convertResult = await commandExecutor.execute('convert', convertArgs);
+
+    if (!convertResult.success) {
+      throw new Error(`Joining images failed: ${convertResult.error}`);
+    }
 
     return {
       success: true,
       jobId,
-      outputPath,
-      filename: `image_${jobId}.png`,
-      message: 'PDF converted to image successfully',
+      outputPath: joinedPath,
+      filename: joinedFilename,
+      message: 'PDF converted to a single joined image successfully',
     };
   }
 
@@ -156,9 +175,9 @@ export class PdfService {
     const filename = `converted_${jobId}.pdf`;
     const outputPath = path.join(outputDir, filename);
 
-    const command = 'convert'; 
+    // Using ImageMagick to convert images to PDF
     const args = [...imagePaths, outputPath];
-    const result = await commandExecutor.execute(command, args);
+    const result = await commandExecutor.execute('convert', args);
 
     if (!result.success) {
       throw new Error(`Image to PDF failed: ${result.error}`);
