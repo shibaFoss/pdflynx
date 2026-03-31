@@ -8,6 +8,7 @@ import {
   Image as ImageIcon, 
   FileImage, 
   Globe,
+  Shield,
   Sparkles, 
   ShieldCheck, 
   Heart,
@@ -56,6 +57,13 @@ const TOOLS = [
     icon: Globe,
     href: '/html-to-pdf',
     color: 'bg-emerald-500',
+  },
+  {
+    title: 'Protect PDF',
+    description: 'Add a password and encrypt your PDF document to keep it secure.',
+    icon: Shield,
+    href: '/protect-pdf',
+    color: 'bg-amber-500',
   },
 ];
 

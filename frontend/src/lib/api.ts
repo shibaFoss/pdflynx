@@ -53,6 +53,14 @@ export const api = {
       responseType: 'blob',
     });
   },
+  protect: (file: File, password: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('password', password);
+    return axios.post(`${API_BASE_URL}/protect`, formData, {
+      responseType: 'blob',
+    });
+  },
 };
 
 export const downloadBlob = (blob: Blob, filename: string) => {

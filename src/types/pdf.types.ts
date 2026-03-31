@@ -128,5 +128,10 @@ export enum PDFAction {
   /**
    * Convert an HTML URL or file into a PDF document.
    */
-  HTML_TO_PDF = 'html-to-pdf'
+  HTML_TO_PDF = 'html-to-pdf',
+
+  /**
+   * Add password protection to a PDF file.
+   */
+  PROTECT_PDF = 'protect-pdf'
 }

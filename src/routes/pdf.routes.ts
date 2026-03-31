@@ -71,6 +71,13 @@ export default async function pdfRoutes(
   );
 
   /**
+   * Add password protection to a PDF.
+   */
+  fastify.post('/protect', (req, rep) =>
+    pdfController.processProtect(req, rep)
+  );
+
+  /**
    * Retrieve the number of pages in a PDF.
    */
   fastify.post('/pages', (req, rep) =>

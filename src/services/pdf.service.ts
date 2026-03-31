@@ -440,6 +440,55 @@ export class PdfService {
       message: 'HTML converted to PDF successfully',
     };
   }
+
+  /**
+   * Protects a PDF with a password using qpdf.
+   *
+   * @param jobId - Unique job identifier
+   * @param inputPath - Input PDF file path
+   * @param password - Password to set
+   * @param outputDir - Directory to store protected PDF
+   * @returns ProcessingResult
+   */
+  async protect(
+    jobId: string,
+    inputPath: string,
+    password: string,
+    outputDir: string
+  ): Promise<ProcessingResult> {
+    const filename = `protected_${jobId}.pdf`;
+    const outputPath = path.join(outputDir, filename);
+
+    // qpdf --encrypt user-pw owner-pw 256 -- input.pdf output.pdf
+    const args = [
+      '--encrypt',
+      password,
+      password, // Using same password for owner for simplicity
+      '256',
+      '--',
+      inputPath,
+      outputPath,
+    ];
+
+    const result = await commandExecutor.execute('qpdf', args, 60000);
+
+    if (!result.success) {
+      throw new Error(`Protection failed: ${result.error}`);
+    }
+
+    const stats = await fs.stat(outputPath).catch(() => null);
+    if (!stats || stats.size === 0) {
+      throw new Error('Protection resulted in an empty file');
+    }
+
+    return {
+      success: true,
+      jobId,
+      outputPath,
+      filename,
+      message: 'PDF protected successfully',
+    };
+  }
 }
 
 /**
