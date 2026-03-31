@@ -10,7 +10,6 @@ import {
   Sparkles, 
   ShieldCheck, 
   Heart,
-  ArrowRight
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -59,23 +58,23 @@ export default function Home() {
       <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl -z-10 animate-pulse" />
       <div className="absolute -bottom-24 right-1/4 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-3xl -z-10" />
 
-      <section className="container mx-auto px-4 pt-20 pb-32">
+      <section className="container mx-auto px-4 pt-12 pb-20">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-center space-y-8 max-w-4xl mx-auto mb-20"
+          className="text-center space-y-6 max-w-4xl mx-auto mb-12"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-bold border border-primary/20 backdrop-blur-md">
-            <Sparkles size={16} />
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-bold border border-primary/20 backdrop-blur-md">
+            <Sparkles size={14} />
             <span>Open Source & Forever Free</span>
           </div>
           
-          <h1 className="text-6xl md:text-8xl font-black tracking-tight leading-[0.9] text-foreground">
+          <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-[0.95] text-foreground">
             The PDF tools you <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-indigo-600">actually</span> love.
           </h1>
           
-          <p className="text-xl md:text-2xl text-muted-foreground font-medium max-w-2xl mx-auto leading-relaxed">
+          <p className="text-lg md:text-xl text-muted-foreground font-medium max-w-2xl mx-auto leading-relaxed">
             Fast, secure, and beautiful. Process your documents without annoying limits or privacy concerns.
           </p>
         </motion.div>

@@ -37,9 +37,10 @@ export default function SplitPdfPage() {
       setResult({ blob, filename });
       setProgress(100);
       setTimeout(() => setStatus('success'), 500);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || 'An error occurred while splitting your PDF.');
+      const message = (err as any).response?.data?.message || 'An error occurred while splitting your PDF.';
+      setError(message);
       setStatus('error');
     }
   };
@@ -54,54 +55,66 @@ export default function SplitPdfPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-12 max-w-5xl space-y-12 animate-in fade-in slide-in-from-bottom-5 duration-700">
-      <div className="text-center space-y-4 pt-8">
-        <div className="inline-flex p-4 rounded-3xl bg-emerald-500/10 text-emerald-500 ring-8 ring-emerald-500/5 shadow-sm transform hover:scale-110 transition-transform">
-          <Scissors size={32} />
+    <div className="container mx-auto px-4 py-8 max-w-5xl space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
+      <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-8 pt-4">
+        <div className="flex items-center gap-6 text-left">
+          <div className="p-4 rounded-[24px] bg-emerald-500/10 text-emerald-500 ring-4 ring-emerald-500/5 shadow-xl shadow-emerald-500/10 active:rotate-12 transition-transform">
+            <Scissors size={32} strokeWidth={2.5} />
+          </div>
+          <div className="space-y-1">
+            <h1 className="text-4xl font-black tracking-tight text-foreground">Split PDF</h1>
+            <p className="text-base text-muted-foreground font-medium max-w-md">
+               Extract pages or split a document into parts.
+            </p>
+          </div>
         </div>
-        <h1 className="text-5xl font-black tracking-tight text-foreground">Split PDF File</h1>
-        <p className="text-lg text-muted-foreground font-medium max-w-xl mx-auto">
-          Separate a single PDF file into multiple documents or extract specific pages.
-        </p>
+
+        {status === 'idle' && files.length > 0 && (
+          <div className="flex-shrink-0 animate-in zoom-in-95 duration-500">
+            <Button size="lg" onClick={handleSplit} className="px-10 rounded-[20px] h-16 text-lg font-black shadow-xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all group bg-primary hover:bg-emerald-600">
+              <Scissors className="mr-2 group-hover:rotate-12 transition-transform duration-500" size={20} strokeWidth={3} />
+              Split Now
+            </Button>
+          </div>
+        )}
       </div>
 
-      {status === 'idle' && (
-        <div className="space-y-12">
-          <FileUpload onFilesSelected={(f) => setFiles(f)} multiple={false} />
-          {files.length > 0 && (
-            <div className="premium-card p-10 space-y-10 animate-in zoom-in duration-500 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none group-hover:opacity-10 transition-opacity">
-                <Hash size={120} />
-              </div>
-              <div className="space-y-4 relative z-10">
-                <label className="text-xl font-extrabold tracking-tight text-foreground flex items-center gap-3">
-                  <div className="bg-primary/10 p-2 rounded-lg text-primary ring-4 ring-primary/5">
-                    <Hash size={20} />
+      <div className="pt-2">
+        {status === 'idle' && (
+          <div className="space-y-6">
+            <FileUpload onFilesSelected={(f) => setFiles(f)} multiple={false} />
+            
+            {files.length > 0 && (
+              <div className="premium-card p-6 px-8 animate-in zoom-in duration-500 relative overflow-hidden group border-2 rounded-[32px]">
+                <div className="flex flex-col md:flex-row items-center gap-6">
+                  <div className="flex items-center gap-3 min-w-max">
+                    <div className="bg-primary/10 p-2.5 rounded-xl text-primary ring-4 ring-primary/5">
+                      <Hash size={20} strokeWidth={3} />
+                    </div>
+                    <label className="text-lg font-black tracking-tight text-foreground">
+                      Page Range
+                    </label>
                   </div>
-                  Page Range
-                </label>
-                <div className="flex flex-col sm:flex-row items-center gap-4">
-                  <input
-                    type="text"
-                    value={range}
-                    onChange={(e) => setRange(e.target.value)}
-                    placeholder="e.g. 1-5, 8, 11-z"
-                    className="flex-1 w-full bg-muted/30 border-2 border-border/40 rounded-2xl px-6 h-14 text-lg font-bold focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
-                  />
-                  <Button size="lg" onClick={handleSplit} className="w-full sm:w-auto px-12 rounded-full h-14 text-lg font-bold shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-transform group">
-                    <Scissors className="mr-2 group-hover:rotate-12 transition-transform" />
-                    Split PDF Now
-                  </Button>
+                  
+                  <div className="flex-1 w-full relative">
+                    <input
+                      type="text"
+                      value={range}
+                      onChange={(e) => setRange(e.target.value)}
+                      placeholder="e.g. 1-5, 8, 11-z"
+                      className="w-full bg-muted/40 border-2 border-border/40 rounded-2xl px-6 h-14 text-lg font-bold focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary transition-all shadow-inner"
+                    />
+                  </div>
+                  
+                  <p className="text-sm text-muted-foreground font-bold whitespace-nowrap italic opacity-70">
+                    Use &quot;z&quot; for last page
+                  </p>
                 </div>
-                <p className="text-sm text-muted-foreground font-medium italic pl-1 flex items-center gap-2">
-                   <div className="w-1.5 h-1.5 rounded-full bg-primary/40" />
-                   Use "z" for the last page (e.g., 1-z, 5-10)
-                </p>
               </div>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
+      </div>
 
       {status === 'processing' && (
         <ProgressBar progress={progress} label="Splitting PDF..." sublabel="Slicing your document into precisely what you need" />

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { FileText, ChevronDown } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { motion } from 'framer-motion';
 
@@ -12,12 +12,12 @@ export const Header = () => {
       animate={{ y: 0 }}
       className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl transition-all duration-300"
     >
-      <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="bg-primary p-2.5 rounded-2xl text-white transform group-hover:rotate-12 transition-all shadow-xl shadow-primary/20 ring-4 ring-primary/5">
-            <FileText size={22} strokeWidth={2.5} />
+          <div className="bg-primary p-2 rounded-xl text-white transform group-hover:rotate-12 transition-all shadow-xl shadow-primary/20 ring-4 ring-primary/5">
+            <FileText size={20} strokeWidth={2.5} />
           </div>
-          <span className="text-2xl font-black tracking-tight text-foreground group-hover:tracking-normal transition-all">
+          <span className="text-xl font-black tracking-tight text-foreground group-hover:tracking-normal transition-all">
             pdf<span className="text-primary italic">lynx</span>
           </span>
         </Link>

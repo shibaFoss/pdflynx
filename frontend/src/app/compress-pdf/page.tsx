@@ -36,9 +36,10 @@ export default function CompressPdfPage() {
       setResult({ blob, filename });
       setProgress(100);
       setTimeout(() => setStatus('success'), 500);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || 'An error occurred while compressing your PDF.');
+      const message = (err as any).response?.data?.message || 'An error occurred while compressing your PDF.';
+      setError(message);
       setStatus('error');
     }
   };
@@ -52,30 +53,37 @@ export default function CompressPdfPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-12 max-w-5xl space-y-12 animate-in fade-in slide-in-from-bottom-5 duration-700">
-      <div className="text-center space-y-4 pt-8">
-        <div className="inline-flex p-4 rounded-3xl bg-amber-500/10 text-amber-500 ring-8 ring-amber-500/5 shadow-sm transform hover:-rotate-12 transition-transform">
-          <Zap size={32} />
+    <div className="container mx-auto px-4 py-8 max-w-5xl space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
+      <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-8 pt-4">
+        <div className="flex items-center gap-6 text-left">
+          <div className="p-4 rounded-[24px] bg-amber-500/10 text-amber-500 ring-4 ring-amber-500/5 shadow-xl shadow-amber-500/10 active:-rotate-12 transition-transform">
+            <Zap size={32} strokeWidth={2.5} />
+          </div>
+          <div className="space-y-1">
+            <h1 className="text-4xl font-black tracking-tight text-foreground">Compress PDF</h1>
+            <p className="text-base text-muted-foreground font-medium max-w-md">
+               Reduce file size while maintaining quality.
+            </p>
+          </div>
         </div>
-        <h1 className="text-5xl font-black tracking-tight text-foreground">Compress PDF File</h1>
-        <p className="text-lg text-muted-foreground font-medium max-w-xl mx-auto">
-          Significantly reduce the size of your PDF while maintaining the best possible quality.
-        </p>
+
+        {status === 'idle' && files.length > 0 && (
+          <div className="flex-shrink-0 animate-in zoom-in-95 duration-500">
+            <Button size="lg" onClick={handleCompress} className="px-10 rounded-[20px] h-16 text-lg font-black shadow-xl shadow-amber-500/30 hover:scale-105 active:scale-95 transition-all group bg-amber-500 hover:bg-amber-600">
+              <Zap className="mr-2 group-hover:animate-pulse" size={20} strokeWidth={3} />
+              Compress Now
+            </Button>
+          </div>
+        )}
       </div>
 
-      {status === 'idle' && (
-        <div className="space-y-12">
-          <FileUpload onFilesSelected={(f) => setFiles(f)} multiple={false} />
-          {files.length > 0 && (
-            <div className="flex justify-center pt-8">
-              <Button size="lg" onClick={handleCompress} className="px-12 rounded-full h-14 text-lg font-bold shadow-xl shadow-amber-500/20 hover:scale-105 active:scale-95 transition-transform group bg-amber-500 hover:bg-amber-600">
-                <Zap className="mr-2 group-hover:animate-pulse" />
-                Compress PDF Now
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
+      <div className="pt-2">
+        {status === 'idle' && (
+          <div className="animate-in fade-in zoom-in-95 duration-700">
+            <FileUpload onFilesSelected={(f) => setFiles(f)} multiple={false} />
+          </div>
+        )}
+      </div>
 
       {status === 'processing' && (
         <ProgressBar progress={progress} label="Squeezing your PDF..." sublabel="Compressing data to save you storage and bandwidth" />

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Mail, Globe, ShieldCheck, Zap, Heart, Code } from 'lucide-react';
+import { Mail, Globe, ShieldCheck, Heart, Code } from 'lucide-react';
 
 export const Footer = () => {
   return (
@@ -16,7 +16,7 @@ export const Footer = () => {
               <h3 className="text-3xl font-black tracking-tight text-foreground">pdf<span className="text-primary italic">lynx</span></h3>
             </Link>
             <p className="text-base text-muted-foreground w-full max-w-sm leading-relaxed font-medium">
-              We're building the future of open-source document processing. Simple, fast, and secure tools designed for everyone.
+              We&apos;re building the future of open-source document processing. Simple, fast, and secure tools designed for everyone.
             </p>
             <div className="flex items-center gap-6 text-muted-foreground">
               <Mail size={22} className="hover:text-primary transition-all cursor-pointer hover:scale-110" />

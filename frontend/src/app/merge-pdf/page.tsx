@@ -36,9 +36,10 @@ export default function MergePdfPage() {
       setResult({ blob, filename });
       setProgress(100);
       setTimeout(() => setStatus('success'), 500);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || 'An error occurred while merging your PDFs.');
+      const message = (err as any).response?.data?.message || 'An error occurred while merging your PDFs.';
+      setError(message);
       setStatus('error');
     }
   };
@@ -52,36 +53,43 @@ export default function MergePdfPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-12 max-w-5xl space-y-16 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-      <div className="text-center space-y-6 pt-12">
-        <div className="inline-flex p-5 rounded-[32px] bg-indigo-500/10 text-indigo-500 ring-8 ring-indigo-500/5 shadow-2xl shadow-indigo-500/20 transform hover:rotate-12 transition-transform duration-500">
-          <Layers size={48} strokeWidth={2.5} />
+    <div className="container mx-auto px-4 py-8 max-w-5xl space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+      <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-8 pt-4">
+        <div className="flex items-center gap-6 text-left">
+          <div className="p-4 rounded-[24px] bg-indigo-500/10 text-indigo-500 ring-4 ring-indigo-500/5 shadow-xl shadow-indigo-500/10">
+            <Layers size={32} strokeWidth={2.5} />
+          </div>
+          <div className="space-y-1">
+            <h1 className="text-4xl font-black tracking-tight text-foreground">Merge PDF</h1>
+            <p className="text-base text-muted-foreground font-medium max-w-md">
+              Combine multiple PDF documents into a single file.
+            </p>
+          </div>
         </div>
-        <div className="space-y-2">
-          <h1 className="text-6xl font-black tracking-tight text-foreground">Merge PDF Files</h1>
-          <p className="text-xl text-muted-foreground font-medium max-w-xl mx-auto">
-            Combine multiple PDF documents into a single, professional file in the exact order you need.
-          </p>
-        </div>
+
+        {status === 'idle' && files.length >= 2 && (
+          <div className="flex-shrink-0 animate-in zoom-in-95 duration-500">
+            <Button size="lg" onClick={handleMerge} className="px-10 rounded-[20px] h-16 text-lg font-black shadow-xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all group bg-primary hover:bg-indigo-600">
+              <Plus className="mr-2 group-hover:rotate-90 transition-transform duration-500" size={20} strokeWidth={3} />
+              Merge Now
+            </Button>
+          </div>
+        )}
       </div>
 
-      {status === 'idle' && (
-        <div className="space-y-16 animate-in zoom-in-95 duration-700">
-          <FileUpload onFilesSelected={setFiles} multiple={true} />
-          {files.length >= 2 && (
-            <div className="flex justify-center pt-8">
-              <Button size="lg" onClick={handleMerge} className="px-16 rounded-[24px] h-20 text-xl font-black shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all group bg-primary hover:bg-indigo-600">
-                <Plus className="mr-3 group-hover:rotate-90 transition-transform duration-500" size={24} strokeWidth={3} />
-                Merge PDFs Now
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
+      <div className="pt-2">
+        {status === 'idle' && (
+          <div className="animate-in fade-in zoom-in-95 duration-700">
+            <FileUpload onFilesSelected={setFiles} multiple={true} />
+          </div>
+        )}
 
-      {status === 'processing' && (
-        <ProgressBar progress={progress} label="Merging Your Files..." sublabel="Our engine is welding your documents together for the perfect final result." />
-      )}
+        {status === 'processing' && (
+          <div className="py-12">
+            <ProgressBar progress={progress} label="Merging Your Files..." sublabel="Our engine is welding your documents together." />
+          </div>
+        )}
+      </div>
 
       {status === 'success' && result && (
         <ResultDownload 
