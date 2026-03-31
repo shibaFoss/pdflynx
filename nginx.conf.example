@@ -1,6 +1,6 @@
 server {
     listen 80;
-    server_name example.com; # Replace with your domain
+    server_name pdflynx.com; # Your domain
 
     # Frontend (Next.js server or static build)
     location / {
