@@ -1,33 +1,24 @@
 import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import { pdfController } from '../controllers/pdf.controller.js';
+import { verifyInternalKey } from '../middleware/auth.middleware.js';
 
 /**
  * Registers all PDF-related routes with the Fastify instance.
- *
- * Responsibilities:
- * - Define API endpoints for PDF operations
- * - Delegate request handling to the pdfController
- *
- * Route Structure:
- * - POST /merge           → Merge multiple PDFs
- * - POST /split           → Split a PDF into multiple pages (ZIP output)
- * - POST /compress        → Compress a PDF
- * - POST /pdf-to-image    → Convert PDF to image(s)
- * - POST /image-to-pdf    → Convert images to a PDF
- * - POST /pages           → Get total page count of a PDF
- *
- * Notes:
- * - All routes use POST due to file uploads / payload complexity
- * - Controllers handle validation, processing, and response formatting
- * - This file should remain thin (no business logic)
+ * All routes are protected by the verifyInternalKey middleware.
  *
  * @param fastify - Fastify server instance
- * @param options - Plugin configuration options (currently unused)
+ * @param options - Plugin configuration options
  */
 export default async function pdfRoutes(
   fastify: FastifyInstance,
   options: FastifyPluginOptions
 ) {
+  /**
+   * Register the authentication middleware globally for this plugin.
+   * This ensures every request to /api/pdf/* has a valid X-Internal-Key.
+   */
+  fastify.addHook('preHandler', verifyInternalKey);
+
   /**
    * Merge multiple PDF files into a single document.
    */
