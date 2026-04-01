@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import {
   Heart, Zap, ShieldCheck, Users, Target, Globe,
@@ -12,14 +13,14 @@ const FOUNDERS = [
   {
     name: 'Shiba Prasad',
     role: 'Founder & CEO',
-    initials: 'SP',
+    image: '/team/shiba.webp',
     color: 'from-primary to-indigo-600',
     bio: 'Visionary developer who started PdfLynx from a personal frustration with clunky, privacy-invasive PDF tools. Passionate about building elegant software that simply works.',
   },
   {
     name: 'Chandan Mishra',
     role: 'Co-Founder & CTO',
-    initials: 'CM',
+    image: '/team/chandan.webp',
     color: 'from-violet-500 to-purple-700',
     bio: 'Backend architect and performance enthusiast responsible for PdfLynx\'s blazing-fast processing engine. Believes great software should be both powerful and invisible.',
   },
@@ -161,8 +162,8 @@ export default function AboutPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {FOUNDERS.map((f) => (
               <div key={f.name} className="premium-card p-8 space-y-5 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                <div className={`w-16 h-16 rounded-[20px] bg-gradient-to-br ${f.color} flex items-center justify-center text-white font-black text-xl shadow-lg`}>
-                  {f.initials}
+                <div className={`relative w-24 h-24 rounded-[24px] overflow-hidden bg-gradient-to-br ${f.color} shadow-lg ring-4 ring-primary/10`}>
+                  <Image src={f.image} alt={f.name} fill className="object-cover" />
                 </div>
                 <div>
                   <p className="text-xl font-black text-foreground">{f.name}</p>
