@@ -5,51 +5,46 @@ import { FileUpload } from '@/components/pdf/FileUpload';
 import { ProgressBar } from '@/components/pdf/ProgressBar';
 import { ResultDownload } from '@/components/pdf/ResultDownload';
 import { api, downloadBlob } from '@/lib/api';
-import { Layers, AlertCircle, Plus } from 'lucide-react';
+import { useJob } from '@/hooks/useJob';
+import { Layers, AlertCircle, Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export default function MergePdfPage() {
-  const [status, setStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
   const [files, setFiles] = useState<File[]>([]);
-  const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<{ blob: Blob; filename: string } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+
+  const { status, progress, queueInfo, error, startJob, reset: resetJob } = useJob({
+    onSuccess: (blob) => {
+      setResult({ blob, filename: `merged_pdf_${Date.now()}.pdf` });
+    },
+  });
 
   const handleMerge = async () => {
-    if (files.length < 2) {
-      setError('Please select at least 2 PDF files to merge.');
-      return;
-    }
-
-    setStatus('processing');
-    setProgress(20);
-    setError(null);
-
-    try {
-      setProgress(40);
-      const response = await api.merge(files);
-      setProgress(80);
-      
-      const blob = response.data;
-      const filename = `merged_pdf_${Date.now()}.pdf`;
-      
-      setResult({ blob, filename });
-      setProgress(100);
-      setTimeout(() => setStatus('success'), 500);
-    } catch (err) {
-      console.error(err);
-      const message = (err as any).response?.data?.message || 'An error occurred while merging your PDFs.';
-      setError(message);
-      setStatus('error');
-    }
+    if (files.length < 2) return;
+    await startJob(() => api.merge(files));
   };
 
   const reset = () => {
-    setStatus('idle');
+    resetJob();
     setFiles([]);
     setResult(null);
-    setError(null);
-    setProgress(0);
+  };
+
+  const getSublabel = () => {
+    if (status === 'queued' && queueInfo) {
+      return `Waiting in line... Position: ${queueInfo.position} / Total: ${queueInfo.length}`;
+    }
+    if (status === 'processing') {
+      return 'Engine is welding your documents together...';
+    }
+    return '';
+  };
+
+  const getLabel = () => {
+    if (status === 'queued') return 'Tasks are Queued';
+    if (status === 'processing') return 'Merging Your Files...';
+    if (status === 'success') return 'Merging Successful!';
+    return '';
   };
 
   return (
@@ -84,9 +79,19 @@ export default function MergePdfPage() {
           </div>
         )}
 
-        {status === 'processing' && (
-          <div className="py-12">
-            <ProgressBar progress={progress} label="Merging Your Files..." sublabel="Our engine is welding your documents together." />
+        {(status === 'processing' || status === 'queued') && (
+          <div className="py-12 relative">
+             {status === 'queued' && (
+               <div className="absolute top-0 right-0 flex items-center gap-2 px-6 py-3 rounded-full bg-amber-500/10 text-amber-600 font-black text-sm border border-amber-500/20 animate-pulse">
+                 <Loader2 className="animate-spin" size={16} />
+                 HEAVY LOAD MODE
+               </div>
+             )}
+            <ProgressBar 
+              progress={progress} 
+              label={getLabel()} 
+              sublabel={getSublabel()} 
+            />
           </div>
         )}
       </div>

@@ -83,6 +83,20 @@ export default async function pdfRoutes(
   );
 
   /**
+   * Retrieve the status of a background job.
+   */
+  fastify.get('/status/:jobId', (req, rep) => 
+    pdfController.getStatus(req, rep)
+  );
+
+  /**
+   * Download the finished result of a background job.
+   */
+  fastify.get('/download/:jobId', (req, rep) => 
+    pdfController.downloadResult(req, rep)
+  );
+
+  /**
    * Retrieve the number of pages in a PDF.
    */
   fastify.post('/pages', (req, rep) =>
