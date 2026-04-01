@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   FileText, Menu, X, ChevronRight, Heart, LayoutGrid,
   Layers, Scissors, Zap, FileImage, Image as ImageIcon,
-  Globe, Shield, LockOpen, RefreshCw, ChevronDown
+  Globe, Shield, LockOpen, RefreshCw, ChevronDown, Info
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -75,6 +75,17 @@ export const Header = () => {
           >
             <LayoutGrid size={15} />
             All Tools
+          </Link>
+
+          {/* About link */}
+          <Link
+            href="/about"
+            className={`flex items-center gap-1.5 px-4 py-2 text-sm font-bold rounded-xl transition-all duration-200 ${
+              pathname === '/about' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground hover:text-primary hover:bg-white'
+            }`}
+          >
+            <Info size={15} />
+            About
           </Link>
 
           {/* Tools Dropdown */}
@@ -175,6 +186,25 @@ export const Header = () => {
                   <div className="flex items-center gap-3">
                     <LayoutGrid size={20} className={pathname === '/' ? 'text-primary' : 'text-primary'} />
                     <span>All Tools</span>
+                  </div>
+                  <ChevronRight size={18} className="text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                </Link>
+              </div>
+
+              {/* About link */}
+              <div className="px-4 pb-2">
+                <Link
+                  href="/about"
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`flex items-center justify-between p-4 rounded-2xl font-bold text-base transition-all group ${
+                    pathname === '/about'
+                      ? 'bg-primary/10 text-primary border border-primary/20'
+                      : 'bg-secondary/30 text-muted-foreground hover:text-primary border border-transparent hover:border-primary/20 hover:bg-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Info size={20} className="text-primary" />
+                    <span>About Us</span>
                   </div>
                   <ChevronRight size={18} className="text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-1 transition-all" />
                 </Link>

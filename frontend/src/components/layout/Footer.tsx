@@ -34,6 +34,10 @@ export const Footer = () => {
               <li><Link href="/compress-pdf" className="hover:text-primary hover:pl-2 transition-all duration-300">Compress PDF</Link></li>
               <li><Link href="/pdf-to-image" className="hover:text-primary hover:pl-2 transition-all duration-300">PDF to Image</Link></li>
               <li><Link href="/image-to-pdf" className="hover:text-primary hover:pl-2 transition-all duration-300">Image to PDF</Link></li>
+              <li><Link href="/html-to-pdf" className="hover:text-primary hover:pl-2 transition-all duration-300">HTML to PDF</Link></li>
+              <li><Link href="/protect-pdf" className="hover:text-primary hover:pl-2 transition-all duration-300">Protect PDF</Link></li>
+              <li><Link href="/unlock-pdf" className="hover:text-primary hover:pl-2 transition-all duration-300">Unlock PDF</Link></li>
+              <li><Link href="/rotate-pdf" className="hover:text-primary hover:pl-2 transition-all duration-300">Rotate PDF</Link></li>
             </ul>
           </div>
 
@@ -46,6 +50,7 @@ export const Footer = () => {
               <li><Link href="/contact" className="hover:text-primary hover:pl-2 transition-all duration-300">Contact</Link></li>
             </ul>
           </div>
+
 
           <div className="space-y-8">
             <h4 className="font-bold text-foreground uppercase tracking-[0.2em] text-[10px]">Newsletter</h4>
