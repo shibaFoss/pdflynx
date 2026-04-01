@@ -1,66 +1,123 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+const backendOrigin = process.env.BACKEND_INTERNAL_URL || 'http://127.0.0.1:5000';
+const internalSecret = process.env.INTERNAL_API_KEY;
+
+function getInternalHeaders(request: NextRequest): Record<string, string> {
+  const headers: Record<string, string> = {
+    'x-internal-key': internalSecret || '',
+  };
+  const contentType = request.headers.get('content-type');
+  if (contentType) {
+    headers['content-type'] = contentType;
+  }
+  return headers;
+}
+
 /**
- * PDF API Proxy Handler.
- * Effectively acts as a secure bridge between the browser and the internal PDF engine.
- * Only reachable because this runs on your Server-Side.
+ * POST handler: File submission (merge, split, compress, etc.)
+ * Backend now returns { jobId } as JSON, so we forward it as JSON.
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { slug: string[] } }
+  { params }: { params: Promise<{ slug: string[] }> }
 ) {
   const { slug } = await params;
   const path = slug.join('/');
-  
-  // Use the internal URL from environment, or fallback to localhost
-  const backendOrigin = process.env.BACKEND_INTERNAL_URL || 'http://127.0.0.1:5000';
   const backendUrl = `${backendOrigin}/api/pdf/${path}`;
-  const internalSecret = process.env.INTERNAL_API_KEY;
 
   if (!internalSecret) {
-    console.error('❌ INTERNAL_API_KEY not found in environment variables.');
     return NextResponse.json({ error: 'Server misconfiguration.' }, { status: 500 });
   }
 
   try {
-    // Re-dispatch the request to the backend with the secret key injected
-    // Pass the body stream directly to the backend fetch call
     const response = await fetch(backendUrl, {
       method: 'POST',
-      headers: {
-        'x-internal-key': internalSecret,
-        // Forward content-type for multipart/form-data (contains the boundary)
-        'content-type': request.headers.get('content-type') || 'application/octet-stream',
-      },
-      // Directly stream the original request body from the client to the backend
-      // without buffering it in the Next.js server's memory first.
+      headers: getInternalHeaders(request),
       body: request.body,
-      // @ts-ignore - 'duplex' is required when passing a stream to fetch
+      // @ts-ignore
       duplex: 'half',
       cache: 'no-store',
     });
 
-    // Check if the backend responded with an error
+    const contentType = response.headers.get('content-type') || '';
+
     if (!response.ok) {
-       const errorData = await response.json().catch(() => ({ message: 'Backend error' }));
-       return NextResponse.json(errorData, { status: response.status });
+      const errorData = await response.json().catch(() => ({ message: 'Backend error' }));
+      return NextResponse.json(errorData, { status: response.status });
     }
 
-    // Stream the binary response back to the client
-    const responseData = await response.blob();
-    return new NextResponse(responseData, {
+    // If response is JSON (e.g., { jobId } or { count }), forward as JSON
+    if (contentType.includes('application/json')) {
+      const json = await response.json();
+      return NextResponse.json(json, { status: response.status });
+    }
+
+    // Otherwise, it's a binary file (e.g., direct /pages response)
+    const blob = await response.blob();
+    return new NextResponse(blob, {
       status: 200,
       headers: {
-        'Content-Type': response.headers.get('Content-Type') || 'application/pdf',
+        'Content-Type': contentType || 'application/octet-stream',
         'Content-Disposition': response.headers.get('Content-Disposition') || '',
       },
     });
 
   } catch (error: any) {
-    console.error(`❌ Proxy Error [${path}]:`, error);
-    return NextResponse.json(
-      { error: 'Failed to communicate with the PDF engine.' }, 
-      { status: 502 }
-    );
+    console.error(`❌ Proxy POST Error [${path}]:`, error);
+    return NextResponse.json({ error: 'Failed to communicate with the PDF engine.' }, { status: 502 });
+  }
+}
+
+/**
+ * GET handler: Job status polling and file download.
+ * /api/pdf/status/:jobId  → returns JSON
+ * /api/pdf/download/:jobId → returns binary file blob
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ slug: string[] }> }
+) {
+  const { slug } = await params;
+  const path = slug.join('/');
+  const backendUrl = `${backendOrigin}/api/pdf/${path}`;
+
+  if (!internalSecret) {
+    return NextResponse.json({ error: 'Server misconfiguration.' }, { status: 500 });
+  }
+
+  try {
+    const response = await fetch(backendUrl, {
+      method: 'GET',
+      headers: { 'x-internal-key': internalSecret },
+      cache: 'no-store',
+    });
+
+    const contentType = response.headers.get('content-type') || '';
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Backend error' }));
+      return NextResponse.json(errorData, { status: response.status });
+    }
+
+    // Status endpoint returns JSON
+    if (contentType.includes('application/json')) {
+      const json = await response.json();
+      return NextResponse.json(json, { status: response.status });
+    }
+
+    // Download endpoint returns binary
+    const blob = await response.blob();
+    return new NextResponse(blob, {
+      status: 200,
+      headers: {
+        'Content-Type': contentType || 'application/octet-stream',
+        'Content-Disposition': response.headers.get('Content-Disposition') || '',
+      },
+    });
+
+  } catch (error: any) {
+    console.error(`❌ Proxy GET Error [${path}]:`, error);
+    return NextResponse.json({ error: 'Failed to communicate with the PDF engine.' }, { status: 502 });
   }
 }
