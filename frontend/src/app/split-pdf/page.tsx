@@ -5,54 +5,34 @@ import { FileUpload } from '@/components/pdf/FileUpload';
 import { ProgressBar } from '@/components/pdf/ProgressBar';
 import { ResultDownload } from '@/components/pdf/ResultDownload';
 import { api, downloadBlob } from '@/lib/api';
-import { Scissors, AlertCircle, Hash } from 'lucide-react';
+import { useJob } from '@/hooks/useJob';
+import { Scissors, AlertCircle, Hash, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export default function SplitPdfPage() {
-  const [status, setStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
   const [files, setFiles] = useState<File[]>([]);
   const [range, setRange] = useState('1-z');
-  const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<{ blob: Blob; filename: string } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+
+  const { status, progress, queueInfo, error, startJob, reset: resetJob } = useJob({
+    onSuccess: (blob) => {
+      setResult({ blob, filename: `split_pdf_${Date.now()}.zip` });
+    },
+  });
 
   const handleSplit = async () => {
-    if (files.length === 0) {
-      setError('Please select a PDF file to split.');
-      return;
-    }
-
-    setStatus('processing');
-    setProgress(20);
-    setError(null);
-
-    try {
-      setProgress(40);
-      const response = await api.split(files[0], range);
-      setProgress(80);
-      
-      const blob = response.data;
-      const filename = `split_pdf_${Date.now()}.zip`;
-      
-      setResult({ blob, filename });
-      setProgress(100);
-      setTimeout(() => setStatus('success'), 500);
-    } catch (err) {
-      console.error(err);
-      const message = (err as any).response?.data?.message || 'An error occurred while splitting your PDF.';
-      setError(message);
-      setStatus('error');
-    }
+    if (files.length === 0) return;
+    await startJob(() => api.split(files[0], range));
   };
 
   const reset = () => {
-    setStatus('idle');
+    resetJob();
     setFiles([]);
     setRange('1-z');
     setResult(null);
-    setError(null);
-    setProgress(0);
   };
+
+  const isActive = status === 'queued' || status === 'processing';
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
@@ -83,7 +63,6 @@ export default function SplitPdfPage() {
         {status === 'idle' && (
           <div className="space-y-6">
             <FileUpload onFilesSelected={(f) => setFiles(f)} multiple={false} />
-            
             {files.length > 0 && (
               <div className="premium-card p-6 px-8 animate-in zoom-in duration-500 relative overflow-hidden group border-2 rounded-[32px]">
                 <div className="flex flex-col md:flex-row items-center gap-6">
@@ -91,11 +70,8 @@ export default function SplitPdfPage() {
                     <div className="bg-primary/10 p-2.5 rounded-xl text-primary ring-4 ring-primary/5">
                       <Hash size={20} strokeWidth={3} />
                     </div>
-                    <label className="text-lg font-black tracking-tight text-foreground">
-                      Page Range
-                    </label>
+                    <label className="text-lg font-black tracking-tight text-foreground">Page Range</label>
                   </div>
-                  
                   <div className="flex-1 w-full relative">
                     <input
                       type="text"
@@ -105,7 +81,6 @@ export default function SplitPdfPage() {
                       className="w-full bg-muted/40 border-2 border-border/40 rounded-2xl px-6 h-14 text-lg font-bold focus:outline-none focus:ring-4 focus:ring-primary/20 focus:border-primary transition-all shadow-inner"
                     />
                   </div>
-                  
                   <p className="text-sm text-muted-foreground font-bold whitespace-nowrap italic opacity-70">
                     Use &quot;z&quot; for last page
                   </p>
@@ -116,13 +91,25 @@ export default function SplitPdfPage() {
         )}
       </div>
 
-      {status === 'processing' && (
-        <ProgressBar progress={progress} label="Splitting PDF..." sublabel="Slicing your document into precisely what you need" />
+      {isActive && (
+        <div className="py-12 relative">
+          {status === 'queued' && (
+            <div className="absolute top-0 right-0 flex items-center gap-2 px-6 py-3 rounded-full bg-amber-500/10 text-amber-600 font-black text-sm border border-amber-500/20 animate-pulse">
+              <Loader2 className="animate-spin" size={16} />
+              HEAVY LOAD MODE
+            </div>
+          )}
+          <ProgressBar
+            progress={progress}
+            label={status === 'queued' ? 'Tasks are Queued' : 'Splitting PDF...'}
+            sublabel={status === 'queued' && queueInfo ? `Waiting in line... Position: ${queueInfo.position} / ${queueInfo.length}` : 'Slicing your document into precisely what you need'}
+          />
+        </div>
       )}
 
       {status === 'success' && result && (
-        <ResultDownload 
-          filename={result.filename} 
+        <ResultDownload
+          filename={result.filename}
           onDownload={() => downloadBlob(result.blob, result.filename)}
           onReset={reset}
         />

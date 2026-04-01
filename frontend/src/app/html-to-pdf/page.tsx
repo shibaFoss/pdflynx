@@ -5,63 +5,40 @@ import { FileUpload } from '@/components/pdf/FileUpload';
 import { ProgressBar } from '@/components/pdf/ProgressBar';
 import { ResultDownload } from '@/components/pdf/ResultDownload';
 import { api, downloadBlob } from '@/lib/api';
-import { Globe, AlertCircle, Sparkles, Link as LinkIcon, FileCode } from 'lucide-react';
+import { useJob } from '@/hooks/useJob';
+import { Globe, AlertCircle, Sparkles, Link as LinkIcon, FileCode, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function HtmlToPdfPage() {
-  const [status, setStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
   const [mode, setMode] = useState<'url' | 'file'>('url');
   const [url, setUrl] = useState('');
   const [file, setFile] = useState<File | null>(null);
-  const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<{ blob: Blob; filename: string } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+
+  const { status, progress, queueInfo, error, startJob, reset: resetJob } = useJob({
+    onSuccess: (blob) => {
+      setResult({ blob, filename: `converted_html_${Date.now()}.pdf` });
+    },
+  });
 
   const handleConvert = async () => {
-    if (mode === 'url' && !url) {
-      setError('Please enter a valid URL.');
-      return;
-    }
-    if (mode === 'file' && !file) {
-      setError('Please select an HTML file.');
-      return;
-    }
-
-    setStatus('processing');
-    setProgress(20);
-    setError(null);
-
-    try {
-      setProgress(40);
-      const response = await api.htmlToPdf({
-        url: mode === 'url' ? url : undefined,
-        file: mode === 'file' ? file || undefined : undefined
-      });
-      setProgress(80);
-      
-      const blob = response.data;
-      const filename = `converted_html_${Date.now()}.pdf`;
-      
-      setResult({ blob, filename });
-      setProgress(100);
-      setTimeout(() => setStatus('success'), 500);
-    } catch (err: any) {
-      console.error(err);
-      const message = err.response?.data?.message || 'An error occurred while converting your HTML.';
-      setError(message);
-      setStatus('error');
-    }
+    if (mode === 'url' && !url) return;
+    if (mode === 'file' && !file) return;
+    await startJob(() => api.htmlToPdf({
+      url: mode === 'url' ? url : undefined,
+      file: mode === 'file' ? file || undefined : undefined,
+    }));
   };
 
   const reset = () => {
-    setStatus('idle');
+    resetJob();
     setUrl('');
     setFile(null);
     setResult(null);
-    setError(null);
-    setProgress(0);
   };
+
+  const isActive = status === 'queued' || status === 'processing';
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
@@ -92,21 +69,11 @@ export default function HtmlToPdfPage() {
         {status === 'idle' && (
           <div className="space-y-8">
             <div className="flex p-1.5 bg-secondary/50 backdrop-blur-xl rounded-[24px] w-fit mx-auto border border-border/50">
-              <button
-                onClick={() => setMode('url')}
-                className={`flex items-center gap-2 px-8 py-3 rounded-[18px] font-bold transition-all ${
-                  mode === 'url' ? 'bg-white text-primary shadow-lg ring-1 ring-black/5' : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
+              <button onClick={() => setMode('url')} className={`flex items-center gap-2 px-8 py-3 rounded-[18px] font-bold transition-all ${mode === 'url' ? 'bg-white text-primary shadow-lg ring-1 ring-black/5' : 'text-muted-foreground hover:text-foreground'}`}>
                 <LinkIcon size={18} />
                 URL to PDF
               </button>
-              <button
-                onClick={() => setMode('file')}
-                className={`flex items-center gap-2 px-8 py-3 rounded-[18px] font-bold transition-all ${
-                  mode === 'file' ? 'bg-white text-primary shadow-lg ring-1 ring-black/5' : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
+              <button onClick={() => setMode('file')} className={`flex items-center gap-2 px-8 py-3 rounded-[18px] font-bold transition-all ${mode === 'file' ? 'bg-white text-primary shadow-lg ring-1 ring-black/5' : 'text-muted-foreground hover:text-foreground'}`}>
                 <FileCode size={18} />
                 HTML File
               </button>
@@ -114,35 +81,17 @@ export default function HtmlToPdfPage() {
 
             <AnimatePresence mode="wait">
               {mode === 'url' ? (
-                <motion.div
-                  key="url-mode"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="premium-card p-12 md:p-20 text-center"
-                >
+                <motion.div key="url-mode" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="premium-card p-12 md:p-20 text-center">
                   <div className="max-w-2xl mx-auto space-y-6">
                     <div className="space-y-2">
                       <label htmlFor="url-input" className="text-sm font-black uppercase tracking-widest text-muted-foreground">Enter Website URL</label>
-                      <input
-                        id="url-input"
-                        type="url"
-                        placeholder="https://example.com"
-                        value={url}
-                        onChange={(e) => setUrl(e.target.value)}
-                        className="w-full h-16 px-6 rounded-[20px] bg-secondary/50 border-2 border-transparent focus:border-emerald-500/50 focus:bg-white outline-none text-xl font-medium transition-all text-center"
-                      />
+                      <input id="url-input" type="url" placeholder="https://example.com" value={url} onChange={(e) => setUrl(e.target.value)} className="w-full h-16 px-6 rounded-[20px] bg-secondary/50 border-2 border-transparent focus:border-emerald-500/50 focus:bg-white outline-none text-xl font-medium transition-all text-center" />
                     </div>
                     <p className="text-sm text-muted-foreground">Make sure the URL is public and accessible without login.</p>
                   </div>
                 </motion.div>
               ) : (
-                <motion.div
-                  key="file-mode"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                >
+                <motion.div key="file-mode" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}>
                   <FileUpload onFilesSelected={(files) => setFile(files[0])} multiple={false} accept=".html,.htm" />
                 </motion.div>
               )}
@@ -150,22 +99,24 @@ export default function HtmlToPdfPage() {
           </div>
         )}
 
-        {status === 'processing' && (
-          <div className="py-12">
-            <ProgressBar 
-              progress={progress} 
-              label="Converting HTML..." 
-              sublabel={mode === 'url' ? `Fetching content from ${url}` : "Rendering your HTML layout."} 
+        {isActive && (
+          <div className="py-12 relative">
+            {status === 'queued' && (
+              <div className="absolute top-0 right-0 flex items-center gap-2 px-6 py-3 rounded-full bg-amber-500/10 text-amber-600 font-black text-sm border border-amber-500/20 animate-pulse">
+                <Loader2 className="animate-spin" size={16} />
+                HEAVY LOAD MODE
+              </div>
+            )}
+            <ProgressBar
+              progress={progress}
+              label={status === 'queued' ? 'Tasks are Queued' : 'Converting HTML...'}
+              sublabel={status === 'queued' && queueInfo ? `Waiting in line... Position: ${queueInfo.position} / ${queueInfo.length}` : (mode === 'url' ? `Fetching content from ${url}` : 'Rendering your HTML layout.')}
             />
           </div>
         )}
 
         {status === 'success' && result && (
-          <ResultDownload 
-            filename={result.filename} 
-            onDownload={() => downloadBlob(result.blob, result.filename)}
-            onReset={reset}
-          />
+          <ResultDownload filename={result.filename} onDownload={() => downloadBlob(result.blob, result.filename)} onReset={reset} />
         )}
 
         {status === 'error' && (

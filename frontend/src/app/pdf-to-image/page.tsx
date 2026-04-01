@@ -5,79 +5,58 @@ import { FileUpload } from '@/components/pdf/FileUpload';
 import { ProgressBar } from '@/components/pdf/ProgressBar';
 import { ResultDownload } from '@/components/pdf/ResultDownload';
 import { api, downloadBlob } from '@/lib/api';
-import { Image as ImageIcon, AlertCircle, Info } from 'lucide-react';
+import { useJob } from '@/hooks/useJob';
+import { Image as ImageIcon, AlertCircle, Info, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export default function PdfToImagePage() {
-  const [status, setStatus] = useState<'idle' | 'analyzing' | 'processing' | 'success' | 'error'>('idle');
   const [files, setFiles] = useState<File[]>([]);
+  const [analyzing, setAnalyzing] = useState(false);
   const [pageCount, setPageCount] = useState<number>(0);
   const [rangeType, setRangeType] = useState<'all' | 'custom'>('all');
   const [customRange, setCustomRange] = useState('1-1');
-  const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<{ blob: Blob; filename: string } | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
-  const analyzePdf = async () => {
-    setStatus('analyzing');
+  const { status, progress, queueInfo, error, startJob, reset: resetJob } = useJob({
+    onSuccess: (blob) => {
+      setResult({ blob, filename: `images_from_pdf_${Date.now()}.png` });
+    },
+  });
+
+  const analyzePdf = async (file: File) => {
+    setAnalyzing(true);
     try {
-      const response = await api.getPageCount(files[0]);
+      const response = await api.getPageCount(file);
       setPageCount(response.data.count);
       setCustomRange(`1-${response.data.count}`);
-      setStatus('idle');
-    } catch (err) {
-      console.error(err);
-      setError('Could not analyze PDF file.');
-      setStatus('error');
+    } catch {
+      // ignore analyze error
+    } finally {
+      setAnalyzing(false);
     }
   };
 
   useEffect(() => {
     if (files.length > 0 && status === 'idle') {
-      analyzePdf();
+      analyzePdf(files[0]);
     }
   }, [files]);
 
   const handleConvert = async () => {
-    if (files.length === 0) {
-      setError('Please select a PDF file to convert.');
-      return;
-    }
-
-    setStatus('processing');
-    setProgress(30);
-    setError(null);
-
+    if (files.length === 0) return;
     const range = rangeType === 'all' ? `1-${pageCount}` : customRange;
-
-    try {
-      setProgress(60);
-      const response = await api.pdfToImage(files[0], range);
-      setProgress(90);
-      
-      const blob = response.data;
-      const filename = `images_from_pdf_${Date.now()}.png`;
-      
-      setResult({ blob, filename });
-      setProgress(100);
-      setTimeout(() => setStatus('success'), 500);
-    } catch (err) {
-      console.error(err);
-      const message = (err as any).response?.data?.message || 'An error occurred while converting your PDF.';
-      setError(message);
-      setStatus('error');
-    }
+    await startJob(() => api.pdfToImage(files[0], range));
   };
 
   const reset = () => {
-    setStatus('idle');
+    resetJob();
     setFiles([]);
     setPageCount(0);
     setRangeType('all');
     setResult(null);
-    setError(null);
-    setProgress(0);
   };
+
+  const isActive = status === 'queued' || status === 'processing';
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
@@ -109,7 +88,7 @@ export default function PdfToImagePage() {
           <FileUpload onFilesSelected={(f) => setFiles(f)} multiple={false} />
         )}
 
-        {status === 'analyzing' && (
+        {analyzing && (
           <div className="premium-card p-12 text-center space-y-6 rounded-[32px]">
              <div className="w-16 h-16 border-4 border-rose-500/20 border-t-rose-500 rounded-full animate-spin mx-auto"></div>
              <p className="text-xl font-bold">Analyzing your PDF...</p>
@@ -138,17 +117,11 @@ export default function PdfToImagePage() {
               {pageCount > 1 ? (
                 <div className="premium-card p-6 md:p-8 space-y-8 border-2 rounded-[32px] h-full">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <button 
-                      onClick={() => setRangeType('all')}
-                      className={`p-5 rounded-2xl border-2 transition-all text-left space-y-2 ${rangeType === 'all' ? 'border-primary bg-primary/5 ring-4 ring-primary/5' : 'border-border hover:border-primary/50'}`}
-                    >
+                    <button onClick={() => setRangeType('all')} className={`p-5 rounded-2xl border-2 transition-all text-left space-y-2 ${rangeType === 'all' ? 'border-primary bg-primary/5 ring-4 ring-primary/5' : 'border-border hover:border-primary/50'}`}>
                       <p className="font-black text-base">Convert All Pages</p>
                       <p className="text-[11px] text-muted-foreground font-medium">Join all pages into one image.</p>
                     </button>
-                    <button 
-                      onClick={() => setRangeType('custom')}
-                      className={`p-5 rounded-2xl border-2 transition-all text-left space-y-2 ${rangeType === 'custom' ? 'border-primary bg-primary/5 ring-4 ring-primary/5' : 'border-border hover:border-primary/50'}`}
-                    >
+                    <button onClick={() => setRangeType('custom')} className={`p-5 rounded-2xl border-2 transition-all text-left space-y-2 ${rangeType === 'custom' ? 'border-primary bg-primary/5 ring-4 ring-primary/5' : 'border-border hover:border-primary/50'}`}>
                       <p className="font-black text-base">Select Range</p>
                       <p className="text-[11px] text-muted-foreground font-medium">Specify pages to extract.</p>
                     </button>
@@ -157,22 +130,14 @@ export default function PdfToImagePage() {
                   {rangeType === 'custom' && (
                     <div className="space-y-3 animate-in slide-in-from-top-2 duration-300">
                       <label className="text-xs font-black text-muted-foreground ml-1 uppercase tracking-wider">Page Range (e.g. 1-5)</label>
-                      <input 
-                        type="text" 
-                        value={customRange} 
-                        onChange={(e) => setCustomRange(e.target.value)}
-                        placeholder="e.g. 1-10"
-                        className="w-full h-14 px-6 rounded-2xl bg-muted/40 border-2 border-transparent focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none font-bold text-lg transition-all"
-                      />
+                      <input type="text" value={customRange} onChange={(e) => setCustomRange(e.target.value)} placeholder="e.g. 1-10" className="w-full h-14 px-6 rounded-2xl bg-muted/40 border-2 border-transparent focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none font-bold text-lg transition-all" />
                     </div>
                   )}
 
                   {((rangeType === 'all' && pageCount > 10) || (rangeType === 'custom' && parseInt(customRange.split('-')[1]) - parseInt(customRange.split('-')[0]) > 10)) && (
                     <div className="flex items-start gap-4 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600">
                       <Info className="shrink-0 mt-0.5" size={16} />
-                      <p className="text-xs font-bold leading-relaxed">
-                        Converting many pages might result in a very large file. System limits may apply.
-                      </p>
+                      <p className="text-xs font-bold leading-relaxed">Converting many pages might result in a very large file. System limits may apply.</p>
                     </div>
                   )}
                 </div>
@@ -187,19 +152,27 @@ export default function PdfToImagePage() {
         )}
       </div>
 
-      {status === 'processing' && (
-        <ProgressBar progress={progress} label="Converting to Image..." sublabel="Joining pages into your final high-quality visual" />
+      {isActive && (
+        <div className="relative">
+          {status === 'queued' && (
+            <div className="absolute top-0 right-0 flex items-center gap-2 px-6 py-3 rounded-full bg-amber-500/10 text-amber-600 font-black text-sm border border-amber-500/20 animate-pulse">
+              <Loader2 className="animate-spin" size={16} />
+              HEAVY LOAD MODE
+            </div>
+          )}
+          <ProgressBar
+            progress={progress}
+            label={status === 'queued' ? 'Tasks are Queued' : 'Converting to Image...'}
+            sublabel={status === 'queued' && queueInfo ? `Waiting in line... Position: ${queueInfo.position} / ${queueInfo.length}` : 'Joining pages into your final high-quality visual'}
+          />
+        </div>
       )}
 
       {status === 'success' && result && (
-        <ResultDownload 
-          filename={result.filename} 
-          onDownload={() => downloadBlob(result.blob, result.filename)}
-          onReset={reset}
-        />
+        <ResultDownload filename={result.filename} onDownload={() => downloadBlob(result.blob, result.filename)} onReset={reset} />
       )}
 
-       {status === 'error' && (
+      {status === 'error' && (
         <div className="premium-card p-12 text-center space-y-8 border-destructive/20 bg-destructive/5 animate-in shake duration-500">
           <div className="inline-flex p-6 rounded-full bg-destructive/10 text-destructive ring-8 ring-destructive/5">
              <AlertCircle size={48} />

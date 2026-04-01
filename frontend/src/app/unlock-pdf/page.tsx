@@ -5,55 +5,35 @@ import { FileUpload } from '@/components/pdf/FileUpload';
 import { ProgressBar } from '@/components/pdf/ProgressBar';
 import { ResultDownload } from '@/components/pdf/ResultDownload';
 import { api, downloadBlob } from '@/lib/api';
-import { LockOpen, AlertCircle, Unlock, Eye, EyeOff } from 'lucide-react';
+import { useJob } from '@/hooks/useJob';
+import { LockOpen, AlertCircle, Unlock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export default function UnlockPdfPage() {
-  const [status, setStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
   const [file, setFile] = useState<File | null>(null);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<{ blob: Blob; filename: string } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+
+  const { status, progress, queueInfo, error, startJob, reset: resetJob } = useJob({
+    onSuccess: (blob) => {
+      setResult({ blob, filename: `unlocked_${file?.name || 'document.pdf'}` });
+    },
+  });
 
   const handleUnlock = async () => {
-    if (!file) {
-      setError('Please select a PDF file.');
-      return;
-    }
-
-    setStatus('processing');
-    setProgress(20);
-    setError(null);
-
-    try {
-      setProgress(40);
-      const response = await api.unlock(file, password);
-      setProgress(80);
-      
-      const blob = response.data;
-      const filename = `unlocked_${file.name}`;
-      
-      setResult({ blob, filename });
-      setProgress(100);
-      setTimeout(() => setStatus('success'), 500);
-    } catch (err: any) {
-      console.error(err);
-      const message = err.response?.data?.message || 'Correct password is required for encrypted files. If the file is not protected, try leaving the password blank.';
-      setError(message);
-      setStatus('error');
-    }
+    if (!file) return;
+    await startJob(() => api.unlock(file, password));
   };
 
   const reset = () => {
-    setStatus('idle');
+    resetJob();
     setFile(null);
     setPassword('');
     setResult(null);
-    setError(null);
-    setProgress(0);
   };
+
+  const isActive = status === 'queued' || status === 'processing';
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-5xl space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
@@ -86,62 +66,46 @@ export default function UnlockPdfPage() {
              <div className="animate-in fade-in zoom-in-95 duration-700">
                 <FileUpload onFilesSelected={(files) => setFile(files[0])} multiple={false} />
              </div>
-             
              <div className="premium-card p-10 space-y-8 animate-in slide-in-from-right-8 duration-700">
                 <div className="space-y-2">
                    <h3 className="text-xl font-black">Decrypt Settings</h3>
                    <p className="text-sm text-muted-foreground font-medium">Enter the current password if the file is encrypted.</p>
                 </div>
-                
                 <div className="space-y-4">
                    <div className="relative">
-                      <label 
-                        htmlFor="password" 
-                        className="absolute -top-3 left-4 px-2 bg-white text-[10px] font-black uppercase tracking-widest text-muted-foreground"
-                      >
-                         PDF Password (if any)
-                      </label>
-                      <input 
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Current password..."
-                        className="w-full h-16 px-6 rounded-[20px] bg-secondary/30 border-2 border-border focus:border-orange-500 focus:bg-white outline-none text-lg font-medium transition-all"
-                      />
-                      <button 
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-6 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-orange-600 transition-colors"
-                      >
+                      <label htmlFor="password" className="absolute -top-3 left-4 px-2 bg-white text-[10px] font-black uppercase tracking-widest text-muted-foreground">PDF Password (if any)</label>
+                      <input id="password" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Current password..." className="w-full h-16 px-6 rounded-[20px] bg-secondary/30 border-2 border-border focus:border-orange-500 focus:bg-white outline-none text-lg font-medium transition-all" />
+                      <button onClick={() => setShowPassword(!showPassword)} className="absolute right-6 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-orange-600 transition-colors">
                          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                       </button>
                    </div>
-                   
                    <div className="p-4 rounded-2xl bg-orange-500/5 border border-orange-500/10 flex gap-4">
-                      <div className="text-orange-600 shrink-0">
-                         <LockOpen size={20} />
-                      </div>
-                      <p className="text-xs text-orange-900/70 font-medium leading-relaxed">
-                        Notice: This tool only removes the password if you know it, or if the PDF has restrictions but no opening password.
-                      </p>
+                      <div className="text-orange-600 shrink-0"><LockOpen size={20} /></div>
+                      <p className="text-xs text-orange-900/70 font-medium leading-relaxed">Notice: This tool only removes the password if you know it, or if the PDF has restrictions but no opening password.</p>
                    </div>
                 </div>
              </div>
           </div>
         )}
 
-        {status === 'processing' && (
-          <div className="py-12">
-            <ProgressBar progress={progress} label="Removing Protection..." sublabel="Cleaning your document for unrestricted use." />
+        {isActive && (
+          <div className="py-12 relative">
+            {status === 'queued' && (
+              <div className="absolute top-0 right-0 flex items-center gap-2 px-6 py-3 rounded-full bg-amber-500/10 text-amber-600 font-black text-sm border border-amber-500/20 animate-pulse">
+                <Loader2 className="animate-spin" size={16} />
+                HEAVY LOAD MODE
+              </div>
+            )}
+            <ProgressBar
+              progress={progress}
+              label={status === 'queued' ? 'Tasks are Queued' : 'Removing Protection...'}
+              sublabel={status === 'queued' && queueInfo ? `Waiting in line... Position: ${queueInfo.position} / ${queueInfo.length}` : 'Cleaning your document for unrestricted use.'}
+            />
           </div>
         )}
 
         {status === 'success' && result && (
-          <ResultDownload 
-            filename={result.filename} 
-            onDownload={() => downloadBlob(result.blob, result.filename)}
-            onReset={reset}
-          />
+          <ResultDownload filename={result.filename} onDownload={() => downloadBlob(result.blob, result.filename)} onReset={reset} />
         )}
 
         {status === 'error' && (
