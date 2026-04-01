@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+html {
+  /* Dynamic font scaling for mobile devices */
+  /* Below ~500px screen width, 1rem will smoothly scale down to 12px, reducing text sizes proportionally everywhere */
+  font-size: clamp(12px, 3.2vw, 16px);
+}
+
 :root {
   --background: #fdfdfd;
   --foreground: #020617;
