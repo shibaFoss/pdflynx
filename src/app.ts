@@ -10,9 +10,9 @@ import { logger } from './utils/logger.js';
  */
 const app = Fastify({
   /**
-   * Use Pino logger in production, disable in dev to use custom structured output
+   * Use Fastify's built-in logging support.
    */
-  logger: process.env.NODE_ENV === 'production' ? logger : false,
+  logger: true,
   
   /**
    * Request timeout protection against hanging connections
