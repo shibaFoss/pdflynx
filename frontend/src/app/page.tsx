@@ -102,11 +102,11 @@ export default function Home() {
             <span className="uppercase tracking-widest text-[10px]">Loved by users across the world</span>
           </div>
           
-          <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.85] text-foreground">
+          <h1 className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tighter leading-[0.85] text-foreground">
             PDF tools that <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent animate-gradient">simply</span> work.
           </h1>
           
-          <p className="text-xl md:text-2xl text-muted-foreground font-medium max-w-2xl mx-auto leading-relaxed">
+          <p className="text-lg md:text-2xl text-muted-foreground font-medium max-w-2xl mx-auto leading-relaxed">
             Fast, secure, and beautifully designed. Process your documents without annoying limits or complexity.
           </p>
         </motion.div>
@@ -115,7 +115,7 @@ export default function Home() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2, duration: 0.8 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
         >
           {TOOLS.map((tool, index) => (
             <ToolCard key={tool.title} {...tool} index={index} />
@@ -173,10 +173,10 @@ export default function Home() {
            <div className="absolute bottom-0 left-0 w-64 h-64 bg-accent/10 rounded-full blur-[100px] -ml-32 -mb-32" />
            
            <div className="relative z-10 space-y-10">
-              <h2 className="text-4xl md:text-6xl font-black tracking-tighter leading-none">
+              <h2 className="text-3xl sm:text-4xl md:text-6xl font-black tracking-tighter leading-none">
                  Ready to <span className="text-primary italic">transform</span> your workflow?
               </h2>
-              <p className="text-lg md:text-xl text-muted-foreground font-medium max-w-xl mx-auto">
+              <p className="text-base sm:text-lg md:text-xl text-muted-foreground font-medium max-w-xl mx-auto">
                  Experience the true power of professional document tools. No signups, no limits, just pure performance.
               </p>
               <div className="flex items-center justify-center">
