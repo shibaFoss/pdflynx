@@ -12,7 +12,9 @@ export async function POST(
   const { slug } = await params;
   const path = slug.join('/');
   
-  const backendUrl = `http://localhost:5000/api/pdf/${path}`;
+  // Use the internal URL from environment, or fallback to localhost
+  const backendOrigin = process.env.BACKEND_INTERNAL_URL || 'http://127.0.0.1:5000';
+  const backendUrl = `${backendOrigin}/api/pdf/${path}`;
   const internalSecret = process.env.INTERNAL_API_KEY;
 
   if (!internalSecret) {
